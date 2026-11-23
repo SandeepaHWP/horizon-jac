@@ -221,3 +221,10 @@ obj Timings {
 
 """An f32 rounded to the tenth, as Rust's `(ms * 10.0).round() / 10.0` on an f32."""
 def tenth32(ms: f32) -> f32;
+
+"""`x` rounded half away from zero, as Rust's `f64::round` does (Jac's `round` rounds halves to
+even)."""
+def round_away(x: float) -> float;
+
+"""`x` rounded to the tenth, as Rust's `(x * 10.0).round() / 10.0`."""
+def tenth(x: float) -> float;

@@ -296,5 +296,20 @@ impl Timings.summary -> Summary {
 }
 
 impl tenth32(ms: f32) -> f32 {
-    return f32(round(ms * f32(10.0))) / f32(10.0);
+    return f32(round_away(float(ms * f32(10.0)))) / f32(10.0);
+}
+
+impl round_away(x: float) -> float {
+    if not math.isfinite(x) {
+        return x;
+    }
+    t = float(math.trunc(x));
+    if abs(x - t) >= 0.5 {
+        t += math.copysign(1.0, x);
+    }
+    return t;
+}
+
+impl tenth(x: float) -> float {
+    return round_away(x * 10.0) / 10.0;
 }

@@ -169,3 +169,25 @@ of another module of the project. In a module that is E1144 ("an import of a pro
 in a module"). In the test annex, `neojac check` and `neojac test` accept it. That is convenient,
 but `language/tests`, `toolchain/projects` and `language/modules-wiring` do not say test annexes
 are exempt from the archwire.
+
+## G17. No `obj` inside a function (limitation)
+
+`impl groups(...) { obj Group { has ...; } ... }`: `error[E5090]: neojac does not support an obj
+here yet`. The Rust original declares function-local structs (`struct Group` in `summary::groups`,
+`struct Totals` in `Store::aggregate`, `struct Cell`, `struct Step`, `struct Machine`). Each became
+a module-level `obj`, visible to the whole module.
+
+## G18. An empty `set()` assigned into a typed container is not inferred (minor)
+
+`g.classes[dim][cls] = set();`, where `g.classes: list[dict[str, set[str]]]`, gives
+`W1051: cannot infer the type of the elements of set(); annotate it`. The target's type is known
+there; inference does not flow from a subscripted target. Written instead as
+`empty: set[str] = set(); g.classes[dim][cls] = empty;`.
+
+## G19. `round` rounds halves to even, with no half-away-from-zero alternative (minor)
+
+`round(2.5)` is `2` and `round(-2.5)` is `-2`, as Python's. Rust's `f64::round` (which the
+original uses everywhere it publishes a number) gives `3` and `-3`. `neojac docs search "away from
+zero"` finds nothing, and `math` has no `round_half_away`. The port has its own `round_away`. A
+port from Rust, C (`round()`), JavaScript (`Math.round`, which rounds halves up) or Go meets this
+at every rounded number.

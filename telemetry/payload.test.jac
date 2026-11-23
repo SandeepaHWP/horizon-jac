@@ -116,3 +116,8 @@ test "slow frames are counted by span within a cap" {
     );
     assert validate(too_many) is not None;
 }
+
+test "rounding takes halves away from zero, as Rust's does" {
+    assert (round_away(2.5), round_away(-2.5), round_away(98.5), round_away(0.49999999999999994)) == (3.0, -3.0, 99.0, 0.0);
+    assert tenth(3.46) == 3.5 and tenth(0.25) == 0.3;
+}
