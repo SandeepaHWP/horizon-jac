@@ -48,3 +48,18 @@ the client address for rate limits (`@limit` counts per caller, but its window, 
 are not those of the original's token bucket, and it cannot key on a proxy header).
 
 How the port deals with it: see the design section of README.md.
+
+## G4. The writing-jac skill says `class` is not built; it is (docs, stale)
+
+`neojac skills writing-jac`, rule 5: "`class` is not built yet: write `obj`." But
+`neojac docs library/http` declares `class Hello(http.server.BaseHTTPRequestHandler)`, and a probe
+with both `class H(BaseHTTPRequestHandler)` and `obj O(BaseHTTPRequestHandler)` checks and runs
+(`neojac run`: `203 1 b'hi'` then `204 None b''`). The skill is stale or the page is wrong; neither
+says which `class` means differently from `obj`.
+
+## G5. Library examples fail the default lint (docs)
+
+The `library/http` example writes `def do_GET -> None { ... }` with bodies inline. Pasted into a
+file and checked with no `jac.toml`, `neojac check` reports W3037 (`'-> None' ... is unnecessary`)
+and W3055 (body belongs in an impl) for each method: 8 errors. `neojac run` runs it anyway. A
+page's example should pass `check` under the default rules, or say it is checked under others.
