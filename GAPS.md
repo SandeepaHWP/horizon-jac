@@ -63,3 +63,59 @@ The `library/http` example writes `def do_GET -> None { ... }` with bodies inlin
 file and checked with no `jac.toml`, `neojac check` reports W3037 (`'-> None' ... is unnecessary`)
 and W3055 (body belongs in an impl) for each method: 8 errors. `neojac run` runs it anyway. A
 page's example should pass `check` under the default rules, or say it is checked under others.
+
+## G6. `absorb` does not keep manifests byte for byte (bug, docs contradiction)
+
+`neojac docs toolchain/packages`: "the file neojac writes from it is the file that was taken in,
+byte for byte". After `neojac absorb crates` on Horizon, 24 of the 86 `Cargo.toml` files differ
+from what was taken in: every target key is re-quoted, `[target.'cfg(unix)'.dependencies]`
+becoming `[target."cfg(unix)".dependencies]` and `'cfg(not(target_os = "macos"))'` becoming
+`"cfg(not(target_os = \"macos\"))"`. TOML reads them the same, so cargo is unaffected, but every
+such crate shows a diff in version control after absorb. Comments were kept.
+
+## G7. `absorb` is slow and silent on a large workspace (minor)
+
+`neojac absorb crates` on Horizon (86 manifests, 5 `Cargo.lock`s): 2 min 37 s wall, 933 MB peak
+RSS, and no output at all until the final line. A first run interrupted part way had left a
+partly written `jac.toml`. A progress line, or at least a note that it is resolving lock files,
+would help.
+
+## G8. An absorbed crate gives Jac nothing unless it exports `extern "C"` (major for Rust ports)
+
+`neojac docs interop/rust-modules`: a crate's interface is its `#[no_mangle] extern "C"` functions,
+`#[repr(C)]` structs, integer constants and integer enums. No Horizon crate exports any, so after
+absorb nothing of `horizon-telemetry` (its `Batch`, `Item`, `decode`, the payload types) can be
+imported from Jac. Absorb records the manifests and nothing more. Taking a crate's ordinary Rust
+API in (its structs, enums, `Result`, `String`, `Vec`) is not offered.
+
+## G9. `port` says a crate does not compile when only port's build-script run fails (bug)
+
+`neojac port --check crates/horizon-telemetry-server` (and `crates/horizon-telemetry`):
+
+```
+Environment variable $CARGO_MANIFEST_LINKS is not set during execution of build script
+...
+thread 'main' panicked at .../ring-0.17.14/build.rs:287:43:
+called `Option::unwrap()` on a `None` value
+crates/horizon-telemetry-server/src/lib.rs: error[E4001]: port does not translate a crate that does not compile for linux-x86_64 yet
+```
+
+But `neojac cargo build --release` in the same directory compiles the crate, `ring` included, for
+linux-x86_64 (1 min 51 s). Port runs dependencies' build scripts without some of the environment
+cargo gives them (guess, from the message: `CARGO_MANIFEST_LINKS` and whatever `ring`'s
+`build.rs:287` reads), then reports the crate itself as not compiling. Any crate that depends on
+`ring` (so `rustls`, `ureq` with TLS) cannot be port-checked at all. The read also took 307 s and
+691 MB for `horizon-telemetry`.
+
+## G10. `port` translates none of Horizon's code (measurement)
+
+`neojac port --check` per crate:
+
+| Crate | Rust lines | Result |
+|---|---|---|
+| horizon-telemetry, horizon-telemetry-server | 1 991, 4 471 | refused: G9 |
+| horizon-java-properties (no dependencies) | 560 | refused, 162 refusals: 44 calls of `std`, 32 references, 23 `std` types, 13 char literals, 10 trait impls, 4 `match`, 4 pattern `let`s, 3 `Result`, 3 non-range `for`s, closures, tuples, `str` literals, one `use`, an index, a lifetime type; 3 E4005 |
+| horizon-client-lib, horizon-hot-paths-game | 11, 52 | refused |
+| horizon-mod-deps, horizon-mod-points, horizon-internals | 2, 4, 5 | "would port": each holds only comments |
+
+So `port` gives no usable Jac for any of Horizon. Everything in this repository is a hand port.
