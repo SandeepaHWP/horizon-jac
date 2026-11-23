@@ -9,6 +9,19 @@ Severity: **blocker** (the original's behavior cannot be reproduced), **major** 
 leaving an abstraction or writing much more code), **minor**, **docs** (missing, wrong or stale docs).
 Any guess at a cause is marked as a guess. I never read neojac's source.
 
+## Summary
+
+| | Gap | Kind |
+|---|---|---|
+| **Blockers** | G24 a served space segfaults writing a `None` `bytes`/`list` field · G26 a `glob` in an impl annex is never initialized, and segfaults · G27 a kept `None` string can't be read back after a restart · G3 a served space can't express an ordinary HTTP API | bugs, limitation |
+| **Major** | G23 crossings refuse `None` for `str \| None` and `list \| None` · G2, G8, G9, G10 absorb and port give nothing usable for Rust · G28 no index on the kept graph · G32 cost against the original | bugs, limitations, measurements |
+| **Bugs** | G6 absorb rewrites manifests · G11 `decode` overflow escapes · G20 wire-use judged by entry point · G21 `static has` doesn't override a library class's attribute · G22 E1182 vs E1146 · G25 thread targets lose defaults | |
+| **Limitations and friction** | G7, G12, G13, G15, G17, G18, G19, G29, G30, G31 | |
+| **Docs** | G1 no Rust porting skill · G4 `class` "not built" is stale · G5 examples fail the default lint · G14 kept field types undocumented · G16 test-annex imports undocumented | |
+
+Every blocker and major bug was found by running the program, not by `neojac check`, which
+accepted each. Each has a minimal reproduction below.
+
 ---
 
 ## G1. No Rust porting skill (docs)
@@ -399,3 +412,44 @@ collision, would have saved most of them.
 `E1053: Popen.__init__()'s parameter 'env' expects dict[str, str], found dict[any, any]`.
 `os.environ` is a mapping of `str` to `str`; its copy loses that. Annotating
 (`full: dict[str, str] = dict(os.environ)`) works.
+
+## G32. Segfault in the cycle collector, entered again from `ZstdCompressor.__del__` (bug, blocker)
+
+The check program's `--measure` mode built 1,000 request bodies like this (each `perf()` records
+30,000 frame times into a `Timings`, then `batch()` writes the batch's JSON and
+`compression.zstd.compress`es it):
+
+```jac
+bodies = [
+    batch(n, [perf(gpus[(n + i) % 4], 8 + (i % 3) * 4) for i in range(per_batch)])
+    for n in range(batches)
+];
+```
+
+With `batches` = 1,000 the program dies with `Segmentation fault`, exit 139: 3 runs of 3 under gdb,
+and intermittently without it (400 and 800 batches crashed, 600 did not; 200 and fewer never). gdb's
+backtrace was the same each time:
+
+```
+#0  j.rt.core.rt_rc_children ()
+#1  j.rt.core.rt_rc_mark_gray ()
+#2  j.rt.core.rt_rc_trace ()
+#3  j.rt.core.rt_rc_flush_from ()
+#4  j.rt.core.rt_rc_flush ()
+#5  j.rt.stdlib.compression.zstd.ZstdCompressor.__del__ ()
+#6  neo.drop.rt.stdlib.compression.zstd[ZstdCompressor] ()
+#7  j.rt.core.rt_hook_call ()
+#8  j.rt.core.rt_drop_hook ()
+#9  j.rt.core.rt_rc_finalize ()
+#10 j.rt.core.rt_rc_dying ()
+#11 j.rt.core.rt_rc_flush_from ()
+#12 j.rt.core.rt_rc_flush ()
+```
+
+Guess, from the frame names only: a finalizer that runs during a collection (`rt_rc_finalize`)
+calls into the collector again (`ZstdCompressor.__del__` → `rt_rc_flush`), which then walks an object
+the outer pass is freeing. 2,000 bare `compress` calls, and compress calls amid many reference
+cycles, did not crash, so the trigger is narrower than "zstd in a loop". It reproduces with the
+check program at commit `16562db` of this repository: `BATCHES=1000 dist/diff-linux-x86_64 --measure`.
+Building each distinct session once (800 times less garbage) avoids it. The api compresses every
+crash and bug report it keeps with the same function, so a busy server could meet this.

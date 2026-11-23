@@ -880,10 +880,17 @@ impl measure(batches: int, per_batch: int) {
         "AMD Radeon RX 7800 XT",
         "Intel(R) Arc A770",
     ];
-    bodies = [
-        batch(n, [perf(gpus[(n + i) % 4], 8 + (i % 3) * 4) for i in range(per_batch)])
-        for n in range(batches)
-    ];
+    made: dict[str, Item] = {};
+    for gpu in gpus {
+        for distance in [8, 12, 16] {
+            made[f"{gpu} {distance}"] = perf(gpu, distance);
+        }
+    }
+    bodies: list[bytes] = [];
+    for n in range(batches) {
+        bodies.append(batch(n, [made[f"{gpus[(n + i) % 4]} {8 + (i % 3) * 4}"] for i in range(per_batch)]));
+    }
+    print(f"bodies made: {len(bodies)}", file=sys.stderr, flush=True);
     print(f"{batches} batches of {per_batch} sessions: {batches * per_batch} sessions");
     print("| | Original (Rust) | Port (Jac) |");
     print("|---|---|---|");
@@ -900,7 +907,13 @@ impl measure(batches: int, per_batch: int) {
         r = start_original(env, 8401) if which == "original" else start_port(env, 8411);
         started_in = time.monotonic() - t0;
         t0 = time.monotonic();
+        print(f"{which}: started", file=sys.stderr, flush=True);
+        sent = 0;
         for body in bodies {
+            sent += 1;
+            if sent % 100 == 0 {
+                print(f"{which}: {sent} batches, {(time.monotonic() - t0) / float(sent) * 1000.0:.1f} ms each so far", file=sys.stderr, flush=True);
+            }
             g = ask(r.port, "POST", "/v1/batch", {"content-encoding": "zstd"}, body);
             if g.status != 204 {
                 raise RuntimeError(f"{which}: {g.status} {g.body!r}");
