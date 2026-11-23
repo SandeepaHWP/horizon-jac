@@ -298,3 +298,26 @@ each in a fresh data directory:
 The same code under `neojac test` (no kept graph) passes, so the store's write is the guess. In the
 port, a perf session without tick summaries (`Perf.ticks` absent, the common case) killed the api
 on every batch. Workaround: `Session.ticks` is `bytes = b""`, empty meaning none.
+
+## G25. A bound method run through `threading.Thread(target=...)` loses its defaults (bug)
+
+`neojac docs language/functions-values`: "A call through a bare `Callable` or an `any` binds its
+arguments as the program runs ... and defaults computed at that call". But:
+
+```jac
+obj Mine {
+    def go(n: float = 0.5) { print(n); }
+}
+
+with entry {
+    t = threading.Thread(target=Mine().go);
+    t.start();
+}
+```
+
+raises in the thread `TypeError: Mine.go() missing 1 required positional argument: 'n'`. The same for
+the library: `threading.Thread(target=srv.serve_forever)`, Python's usual way to serve in the
+background, raises `BaseServer.serve_forever() missing 1 required positional argument:
+'poll_interval'` and the server never runs (the `library/http` example passes `args=(0.01,)`, which
+hides it). In the port's tests a stand-in GitHub never answered because of this; they pass
+`args=(0.5,)`.
