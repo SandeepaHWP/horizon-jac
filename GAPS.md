@@ -321,3 +321,43 @@ background, raises `BaseServer.serve_forever() missing 1 required positional arg
 'poll_interval'` and the server never runs (the `library/http` example passes `args=(0.01,)`, which
 hides it). In the port's tests a stand-in GitHub never answered because of this; they pass
 `args=(0.5,)`.
+
+## G26. A `glob` declared in an impl annex is never initialized; using it segfaults (bug, blocker)
+
+```jac
+# annexglob.jac
+def show;
+with entry { show(); }
+
+# impl/annexglob.impl.jac
+glob counts: list[int] = [1, 2];
+impl show {
+    print("counts is", counts);
+    counts.append(3);
+}
+```
+
+`neojac check` is quiet. `neojac run annexglob.jac` prints `counts is None`, then dies with
+`Segmentation fault (core dumped)`, exit 139. The same in a built app. `language/impl` says an
+annex is "part of the module ... what an annex declares is visible in the module", and `fmt --fix`
+moves bodies, not declarations, so nothing warns that a `glob` there is different. The port's check
+program crashed this way (a stand-in server's list of what it was asked); the glob moved to the
+module file. Globs in a *test* annex work (`service/api.test.jac`).
+
+## G27. The graph store writes a `str | None` field as `None`, then cannot read it back (bug, blocker)
+
+A served space keeps `node Session { ...; has slow_frames: str | None = None; }`. The call that
+makes the node succeeds and it is written. After a restart, the first call that reaches the node
+fails, the server printing:
+
+```
+endpoint /__jac/call/api/service.api/totals failed: DataError: .../graph.db holds a
+service.store.Session node, 042c6d0c1d2025580000000000000023, which no longer fits its type
+(.slow_frames: expected a str, got None)
+```
+
+The type did not change between the write and the read. Every kept node whose `str | None` field
+was `None` becomes unreadable once the server restarts, and every call that touches it fails
+(`apps/data`'s "Data that no longer fits" advice, `--fresh`, discards the data). Guess: the store
+reads with the codec of G23. Found by the side-by-side check's restart scenario. Workaround:
+`Session.slow_frames` is `str = ""`, empty meaning none.

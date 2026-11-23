@@ -178,7 +178,7 @@ impl insert(b: Batch, day: int) {
             p = it.perf;
             m = machine_for(p.system);
             m.uses += 1;
-            slow: str | None = None;
+            slow = "";
             if p.slow_frames {
                 slow = "[" + ",".join(slow_json(x) for x in p.slow_frames) + "]";
             }
@@ -436,7 +436,7 @@ impl aggregate(start: int, end: int, k: int) -> str {
 impl slow_frames(start: int, end: int, k: int) -> list[dict[str, any]] {
     steps: dict[tuple[str, str], StepTotals] = {};
     for s in sessions_in(start, end) {
-        if s.slow_frames is None {
+        if s.slow_frames == "" {
             continue;
         }
         listed: list[any] = json.loads(s.slow_frames);

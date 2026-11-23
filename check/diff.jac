@@ -6,6 +6,8 @@ and the body (JSON compared as values). Prints each difference and a summary; ex
 """
 import gzip;
 import http.client;
+import http.server;
+import threading;
 import json;
 import os;
 import shutil;
@@ -24,7 +26,7 @@ glob COMPARED: list[str] = [
     "access-control-max-age",
     "vary",
     "content-encoding",
-    "allow"
+    "allow",
 ];
 
 """One answer: its status, the compared headers, its body."""
@@ -56,11 +58,11 @@ glob tally: Tally = Tally(),
      scenario: str = "",
      scenario_start: tuple[int, int] = (0, 0);
 
-"""Starts the original with `env` on `port`."""
-def start_original(env: dict[str, str], port: int) -> Running;
+"""Starts the original with `env` on `port`, on the data in `data` (a new directory when empty)."""
+def start_original(env: dict[str, str], port: int, data: str = "") -> Running;
 
-"""Starts the port's api and gate with `env`, the gate on `port`."""
-def start_port(env: dict[str, str], port: int) -> Running;
+"""Starts the port's api and gate with `env`, the gate on `port`, on the data in `data`."""
+def start_port(env: dict[str, str], port: int, data: str = "") -> Running;
 
 """Waits until something answers on `port`."""
 def wait_for(port: int);
@@ -72,14 +74,22 @@ def free(port: int);
 """Raises when a process the server is made of has ended."""
 def running(r: Running) -> Running;
 
-"""Stops a server and removes its data."""
-def stop(r: Running);
+"""Stops a server and removes its data, unless `keep`."""
+def stop(r: Running, keep: bool = False);
 
 """One request to one server."""
 def ask(port: int, method: str, path: str, headers: dict[str, str], body: bytes) -> Got;
 
 """The same request to both; records any difference. The two answers, original first."""
-def both(a: Running, b: Running, method: str, path: str, headers: dict[str, str] = {}, body: bytes = b"", loose: list[str] = []) -> tuple[Got, Got];
+def both(
+    a: Running,
+    b: Running,
+    method: str,
+    path: str,
+    headers: dict[str, str] = {},
+    body: bytes = b"",
+    loose: list[str] = [],
+) -> tuple[Got, Got];
 
 """A body as a value to compare: JSON parsed (gunzipped first when it is), with the keys in
 `loose` removed; else its text."""
@@ -110,6 +120,32 @@ def base_env -> dict[str, str];
 """Runs every scenario."""
 def run_all;
 
+"""What the original's tests assert of the port alone, where the original can't be pointed at a
+stand-in: reports filed on a stand-in GitHub, through the gate."""
+def run_port_only;
+
+"""Checks one expectation of the port alone."""
+def expect(what: str, ok: bool, detail: str = "");
+
+"""Sends sessions to both and measures: time per batch, bytes kept per session, memory."""
+def measure(batches: int, per_batch: int);
+
+"""A process's resident memory, in KiB."""
+def rss_kib(pid: int) -> int;
+
+"""A directory's size in bytes."""
+def du(path: str) -> int;
+
+"""What the stand-in GitHub was asked to open."""
+glob issues_opened: list[dict[str, any]] = [];
+
+"""Answers `POST /repos/<repo>/issues` as GitHub does."""
+class StandInGitHub(http.server.BaseHTTPRequestHandler) {
+    def do_POST;
+
+    override def log_message(format: str, *args: any);
+}
+
 with entry {
     if os.environ.get("ORIGINAL", "") == "" {
         print("ORIGINAL must name the original server's binary", file=sys.stderr);
@@ -117,7 +153,12 @@ with entry {
     }
     started = time.monotonic();
     try {
+        if "--measure" in sys.argv {
+            measure(int(os.environ.get("BATCHES", "1000")), 10);
+            sys.exit(0);
+        }
         run_all();
+        run_port_only();
     } finally {
         for r in list(started_servers) {
             stop(r);
@@ -132,6 +173,8 @@ with entry {
     for (name, n, d) in tally.per_scenario {
         print(f"| {name} | {n} | {d} |");
     }
-    print(f"\n{tally.compared} requests compared, {len(tally.differences)} differences, in {time.monotonic() - started:.1f} s");
+    print(
+        f"\n{tally.compared} requests compared, {len(tally.differences)} differences, in {time.monotonic() - started:.1f} s",
+    );
     sys.exit(1 if tally.differences else 0);
 }

@@ -65,7 +65,8 @@ node Machine {
 }
 
 """One play session, in fields. `frames` and `ticks` are summaries packed in 80 bytes; `ticks` is
-empty when the session had none (not `bytes | None`: the store crashes writing a None there)."""
+empty when the session had none, and so is `slow_frames` (its JSON). Not `| None`: the store
+crashes writing a None `bytes`, and can't read back a None `str`."""
 node Session {
     has install: str,
         day: int,
@@ -83,7 +84,7 @@ node Session {
         peak_ram_mb: int = 0,
         to_title_ms: int | None = None,
         to_world_ms: int | None = None,
-        slow_frames: str | None = None;
+        slow_frames: str = "";
 }
 
 """A crash or bug report or a benchmark upload; its data is zstd-compressed JSON. `id` orders
