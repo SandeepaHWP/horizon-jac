@@ -11,3 +11,4 @@ description = "Golden vectors from the original horizon-telemetry, for the Jac p
 horizon-telemetry = { git = "https://github.com/horizon-rust/horizon", rev = "2e7d2c6bb6f533224df1c4dfaf67548b9bd2c7c9", default-features = false }
 serde_json = "1"
 ruzstd = "0.9"
+horizon-telemetry-server = { git = "https://github.com/horizon-rust/horizon", rev = "2e7d2c6bb6f533224df1c4dfaf67548b9bd2c7c9" }

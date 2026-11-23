@@ -3,7 +3,7 @@ graph layers {
     layer model { telemetry.payload | telemetry.batch | telemetry.live; }
 
     """What the server works out from what it keeps: no storage, no requests."""
-    layer logic { service.jsonv | service.classes | service.summary; }
+    layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report; }
 }
 
 graph import {
@@ -18,4 +18,5 @@ graph import {
     telemetry.payload ++> service.summary { tenth, round_away }
     service.jsonv ++> service.summary { at, as_f64, as_str, as_u64, dumps }
     service.classes ++> service.summary { DIMENSIONS, of_report }
+    service.issues ++> service.game_report { Issue, Rule, clean, neutralise, text_field }
 }
