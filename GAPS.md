@@ -119,3 +119,45 @@ cargo gives them (guess, from the message: `CARGO_MANIFEST_LINKS` and whatever `
 | horizon-mod-deps, horizon-mod-points, horizon-internals | 2, 4, 5 | "would port": each holds only comments |
 
 So `port` gives no usable Jac for any of Horizon. Everything in this repository is a hand port.
+
+## G11. `decode[T]` lets an out-of-range sized integer escape as `OverflowError` (bug)
+
+`neojac docs apps/stdjac`: "Decoding is strict: a value of the wrong JSON type raises `CodecError`
+with the path to it". With `obj Sys { has threads: u16 = u16(0); }`:
+
+| Input | Result |
+|---|---|
+| `decode[Sys]({"threads": 3.0})` | `CodecError: .threads: expected an int, got 3.0` (as documented) |
+| `decode[Sys]({"threads": 70000})` | `OverflowError: integer overflow`, no path, raised from inside stdjac's codec |
+| `decode[Sys]({"threads": -1})` | the same `OverflowError` |
+
+A caller that catches `CodecError` (as the docs teach) crashes on such input; a server endpoint
+answers 500 for what is a bad request. The port catches both.
+
+## G12. `encode` widens `f32` and writes non-JSON for infinities (minor)
+
+`encode(Sys(p50=f32(16.7)))` gives `"p50": 16.700000762939453`: the `f32` is written as the `f64`
+it widens to, not its own shortest form (`16.7`, which `str()` of the same value prints). And
+`decode[Sys]({"p50": 1e40})` gives `p50=inf` silently, which `json.dumps(encode(...))` then writes as
+`Infinity`, which is not JSON. serde writes `16.7`.
+
+## G13. No JSON value type crosses between spaces (minor)
+
+`neojac docs apps/crossings`: `any` is not sendable, and "a union of several types besides `None`
+is refused". So an arbitrary JSON document (Horizon's benchmark reports, `serde_json::Value`) has
+no type it can cross as. The port sends such documents as `str` (their JSON text) and parses them
+again on the other side.
+
+## G14. Which field types a kept node may hold is not documented (docs)
+
+`apps/data` says what makes kept data not fit, but nowhere lists the field types the graph store
+keeps. A probe shows a node keeps, across a restart: a nested `obj`, `dict[str, obj]`,
+`list[float]`, `bytes`, `set[str]`, `int | None`, `obj | None`, an enum, `list[tuple[str, str]]`
+and `dict[int, int]`. Presumably the store uses the crossing codec (guess), but no page says so.
+
+## G15. One keyword used as an app name derails the rest of `archwire.jac` (minor)
+
+`app edge { run front; }` (my mistake: `edge` is a keyword) gives E0013 as expected, and then also
+E2093 on line 1, plus E2089 ("an import does not belong here") and E0003 on a valid
+`graph import { ... }` block further down. The parser does not recover after the bad name, and
+the later errors point away from the one real mistake.
