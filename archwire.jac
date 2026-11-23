@@ -1,6 +1,6 @@
 graph layers {
     """The wire format the game, the launcher and the server share."""
-    layer model { telemetry.payload | telemetry.batch | telemetry.live; }
+    layer model { telemetry.payload | telemetry.batch | telemetry.live | telemetry.server_status | telemetry.config; }
 
     """What the server works out from what it keeps: no storage, no requests."""
     layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report; }
