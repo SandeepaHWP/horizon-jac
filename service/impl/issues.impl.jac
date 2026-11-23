@@ -19,7 +19,17 @@ impl rust_lines(text: str) -> list[str] {
 }
 
 impl neutralise(text: str) -> str {
-    closing = ["close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"];
+    closing = [
+        "close",
+        "closes",
+        "closed",
+        "fix",
+        "fixes",
+        "fixed",
+        "resolve",
+        "resolves",
+        "resolved",
+    ];
     chars = list(text);
     out: list[str] = [];
     i = 0;
@@ -35,11 +45,13 @@ impl neutralise(text: str) -> str {
             out.append("'");
         } elif c in "@#" and nxt != "" and is_alnum(nxt) {
             out.append(c + ZWSP);
-        } elif c in "gG" and word_start
-        and i + 3 < len(chars)
-        and chars[i + 1] in "hH"
-        and chars[i + 2] == "-"
-        and chars[i + 3] in "0123456789" {
+        } elif c in "gG"
+            and word_start
+            and i + 3 < len(chars)
+            and chars[i + 1] in "hH"
+            and chars[i + 2] == "-"
+            and chars[i + 3] in "0123456789"
+        {
             out.append(c + chars[i + 1] + ZWSP);
             i += 1;
         } else {
@@ -129,15 +141,13 @@ impl website_issue(fields: dict[str, any]) -> Issue {
         return "not given";
     }
     title = neutralise(field("title").replace("\n", " ").replace("\r", " "));
-    text = "\n".join(
-        [
-            f"**What I did:**\n{field('did')}",
-            f"**What happened:**\n{field('happened')}",
-            f"**What I expected:**\n{field('expected')}",
-            f"**Horizon version:** {field('version')}",
-            f"**OS, CPU, GPU:** {field('system')}"
-        ]
-    );
+    text = "\n".join([
+        f"**What I did:**\n{field('did')}",
+        f"**What happened:**\n{field('happened')}",
+        f"**What I expected:**\n{field('expected')}",
+        f"**Horizon version:** {field('version')}",
+        f"**OS, CPU, GPU:** {field('system')}",
+    ]);
     quoted = "\n".join(f"> {line}".rstrip() for line in rust_lines(text));
     signed = "";
     raw_name = fields.get("name");
@@ -150,11 +160,9 @@ impl website_issue(fields: dict[str, any]) -> Issue {
             signed = f" by **{n}**";
         }
     }
-    body = (
-        f"{quoted}\n\nReported on playhorizon.dev{signed}\n\n<sub>Opened by the bug form on "
+    body = (f"{quoted}\n\nReported on playhorizon.dev{signed}\n\n<sub>Opened by the bug form on "
         "playhorizon.dev/hub. The reporter has this issue's link; they don't get GitHub "
-        "notifications.</sub>"
-    );
+        "notifications.</sub>");
     return Issue(title=title, body=body, labels=list(LABELS));
 }
 

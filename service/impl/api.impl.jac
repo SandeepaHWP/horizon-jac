@@ -101,16 +101,14 @@ impl export_hardware(days: int, offset: int, limit: int) -> str {
     }
     page = every[offset:offset + limit];
     following: any = offset + len(page) if offset + len(page) < len(every) else None;
-    return dumps(
-        {
-            "from_day": start,
-            "to_day": end,
-            "total_machines": len(every),
-            "bucket_edges_ms": [tenth(float(f32(e))) for e in BUCKET_EDGES_MS],
-            "machines": page,
-            "next_offset": following
-        }
-    );
+    return dumps({
+        "from_day": start,
+        "to_day": end,
+        "total_machines": len(every),
+        "bucket_edges_ms": [tenth(float(f32(e))) for e in BUCKET_EDGES_MS],
+        "machines": page,
+        "next_offset": following,
+    });
 }
 
 impl take_ping(p: Ping) -> bool {
@@ -185,7 +183,9 @@ impl take_report(kind: str, fields: str, per_day: int) -> Reply {
     with data_lock {
         ready();
         if queued_on(kind, day) >= per_day {
-            return Reply(status=503, body=dumps({"error": "too many today: please try again tomorrow"}));
+            return Reply(
+                status=503, body=dumps({"error": "too many today: please try again tomorrow"})
+            );
         }
         (id, issue) = enqueue(kind, day, max(day - 1, 0), fields);
     }
@@ -201,7 +201,9 @@ impl take_report(kind: str, fields: str, per_day: int) -> Reply {
     }
     token = cfg.github_token or "";
     try {
-        url = open_issue(cfg.github_api, cfg.github_repo, token, issue_for(kind, json.loads(fields)));
+        url = open_issue(
+            cfg.github_api, cfg.github_repo, token, issue_for(kind, json.loads(fields))
+        );
         with data_lock {
             filed(id, url);
         }
@@ -254,7 +256,12 @@ impl file_pending {
             continue;
         }
         try {
-            url = open_issue(cfg.github_api, cfg.github_repo, cfg.github_token or "", issue_for(kind, json.loads(body)));
+            url = open_issue(
+                cfg.github_api,
+                cfg.github_repo,
+                cfg.github_token or "",
+                issue_for(kind, json.loads(body)),
+            );
             with data_lock {
                 filed(id, url);
             }
@@ -322,7 +329,10 @@ impl every_minute {
             record_official();
             commit();
         } except Exception as e {
-            print(f"horizon-telemetry-server: could not record the official server: {e}", file=sys.stderr);
+            print(
+                f"horizon-telemetry-server: could not record the official server: {e}",
+                file=sys.stderr,
+            );
         }
     }
     threading.Thread(target=official).start();

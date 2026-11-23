@@ -77,7 +77,9 @@ impl unfiled(since: int) -> list[Queued] {
     return [
         queued[id]
         for id in sorted(queue().keys())
-        if queued[id].kind in ["report", "game"] and queued[id].state == "new" and queued[id].day >= since
+        if queued[id].kind in ["report", "game"]
+            and queued[id].state == "new"
+            and queued[id].day >= since
     ];
 }
 

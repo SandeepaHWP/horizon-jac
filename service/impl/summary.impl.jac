@@ -110,7 +110,10 @@ impl figures(doc: any) -> list[float | None] {
     if isinstance(metrics, dict) {
         m: dict[str, any] = metrics;
         for k in sorted(m.keys()) {
-            if k.startswith("chunks.") and k.endswith(".load_ms") and len(k) >= len("chunks..load_ms") {
+            if k.startswith("chunks.")
+                and k.endswith(".load_ms")
+                and len(k) >= len("chunks..load_ms")
+            {
                 scene = k[len("chunks."):len(k) - len(".load_ms")];
                 if "." not in scene {
                     x = as_f64(at(m[k], "mean"));
@@ -128,7 +131,7 @@ impl figures(doc: any) -> list[float | None] {
         metric("startup.world_ms"),
         sum(loads) / len(loads) if loads else None,
         metric("memory.rss_peak_mb"),
-        metric("memory.rss_steady_mb")
+        metric("memory.rss_steady_mb"),
     ];
 }
 
@@ -156,7 +159,7 @@ impl groups(uploads: list[Upload], min_installs: int) -> list[dict[str, any]] {
             trim(as_str(at(at(hw, "gpu"), "name")) or ""),
             trim(as_str(at(hw, "cpu")) or ""),
             int(max(min(rd, 9.2e18), -9.2e18)),
-            game(at(u.doc, "app")) or ""
+            game(at(u.doc, "app")) or "",
         );
         if key not in grouped {
             grouped[key] = Group();
@@ -188,9 +191,10 @@ impl groups(uploads: list[Upload], min_installs: int) -> list[dict[str, any]] {
         }
         per_install: list[list[float | None]] = [];
         for runs in g.installs.values() {
-            per_install.append(
-                [median([r[i] for r in runs if r[i] is not None]) for i in range(len(FIELDS))]
-            );
+            per_install.append([
+                median([r[i] for r in runs if r[i] is not None])
+                for i in range(len(FIELDS))
+            ]);
         }
         medians: dict[str, any] = {};
         for (i, f) in enumerate(FIELDS) {
@@ -213,36 +217,32 @@ impl groups(uploads: list[Upload], min_installs: int) -> list[dict[str, any]] {
         }
         versions = sorted(versions, key=numbers, reverse=True)[:3];
         (gpu, cpu, rd, game_name) = key;
-        out.append(
-            (
-                len(g.installs),
-                {
-                    "gpu": gpu,
-                    "cpu": cpu,
-                    "render_distance": rd,
-                    "game": game_name,
-                    "source": "players",
-                    "installs": len(g.installs),
-                    "reports": g.reports,
-                    "versions": versions,
-                    "medians": medians,
-                    "breakdowns": breakdowns(g.classes, min_installs)
-                }
-            )
-        );
+        out.append((
+            len(g.installs),
+            {
+                "gpu": gpu,
+                "cpu": cpu,
+                "render_distance": rd,
+                "game": game_name,
+                "source": "players",
+                "installs": len(g.installs),
+                "reports": g.reports,
+                "versions": versions,
+                "medians": medians,
+                "breakdowns": breakdowns(g.classes, min_installs),
+            },
+        ));
     }
     out.sort(key=lambda (g: tuple[int, dict[str, any]]) -> int { -g[0] });
     return [g[1] for g in out];
 }
 
 impl summary(uploads: list[Upload], min_installs: int, generated: str) -> str {
-    return dumps(
-        {
-            "format": FORMAT,
-            "version": 1,
-            "generated": generated,
-            "min_installs": min_installs,
-            "groups": groups(uploads, min_installs)
-        }
-    );
+    return dumps({
+        "format": FORMAT,
+        "version": 1,
+        "generated": generated,
+        "min_installs": min_installs,
+        "groups": groups(uploads, min_installs),
+    });
 }

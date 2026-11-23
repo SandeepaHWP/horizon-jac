@@ -80,7 +80,7 @@ impl pack(s: Summary) -> bytes {
         float(s.p95_ms),
         float(s.p99_ms),
         float(s.max_ms),
-        *counts
+        *counts,
     );
 }
 
@@ -95,7 +95,7 @@ impl unpack(raw: bytes) -> Summary | None {
         p95_ms=f32(v[2]),
         p99_ms=f32(v[3]),
         max_ms=f32(v[4]),
-        buckets=[u32(b) for b in v[5:]]
+        buckets=[u32(b) for b in v[5:]],
     );
 }
 
@@ -120,19 +120,26 @@ impl gpu_vendor(gpu: str) -> str {
 
 impl extra_json(s: System) -> str {
     shown = display_json(s.display) if s.display is not None else "null";
-    return (
-        f'{{"cores":{s.cores},"cpu_base_mhz":{s.cpu_base_mhz},"cpu_boost_mhz":{s.cpu_boost_mhz},'
+    return (f'{{"cores":{s.cores},"cpu_base_mhz":{s.cpu_base_mhz},"cpu_boost_mhz":{s.cpu_boost_mhz},'
         f'"gpu_vendor":{jstr(s.gpu_vendor)},"gpu_kind":{jstr(s.gpu_kind)},"vram_mb":{s.vram_mb},'
-        f'"storage":{jstr(s.storage)},"display":{shown},"power":{jstr(s.power)},"form":{jstr(s.form)}}}'
-    );
+        f'"storage":{jstr(s.storage)},"display":{shown},"power":{jstr(s.power)},"form":{jstr(s.form)}}}');
 }
 
 impl machine_for(s: System) -> Machine {
     machine_of("");
     extra = extra_json(s);
-    key = json.dumps(
-        [s.os, s.os_version, s.arch, s.cpu, int(s.threads), int(s.ram_gb), s.gpu, s.driver, s.backend, extra]
-    );
+    key = json.dumps([
+        s.os,
+        s.os_version,
+        s.arch,
+        s.cpu,
+        int(s.threads),
+        int(s.ram_gb),
+        s.gpu,
+        s.driver,
+        s.backend,
+        extra,
+    ]);
     if key in machines_by_key {
         return machines_by_key[key];
     }
@@ -147,7 +154,7 @@ impl machine_for(s: System) -> Machine {
         gpu=s.gpu,
         driver=s.driver,
         backend=s.backend,
-        extra=extra
+        extra=extra,
     );
     hub("machines") ++> m;
     machines_by_key[key] = m;
@@ -199,7 +206,7 @@ impl insert(b: Batch, day: int) {
                 peak_ram_mb=int(p.peak_ram_mb),
                 to_title_ms=int(p.to_title_ms) if p.to_title_ms is not None else None,
                 to_world_ms=int(p.to_world_ms) if p.to_world_ms is not None else None,
-                slow_frames=slow
+                slow_frames=slow,
             );
             i ++> s;
             d ++> s;
@@ -219,7 +226,7 @@ impl insert(b: Batch, day: int) {
                 kind=it.kind.value,
                 version=it.version,
                 machine=machine,
-                body=compression.zstd.compress(data_json(it).encode())
+                body=compression.zstd.compress(data_json(it).encode()),
             );
             c.next_report += 1;
             i ++> r;
@@ -321,7 +328,7 @@ impl rebuild_day(d: Day) {
                 os=key[1],
                 gpu_vendor=key[2],
                 render_distance=key[3],
-                buckets=[0] * BUCKET_COUNT
+                buckets=[0] * BUCKET_COUNT,
             );
             empty: set[str] = set();
             seen[key] = empty;
@@ -368,7 +375,7 @@ impl aggregate(start: int, end: int, k: int) -> str {
                     os=g.os,
                     gpu_vendor=g.gpu_vendor,
                     render_distance=g.render_distance,
-                    buckets=[0] * BUCKET_COUNT
+                    buckets=[0] * BUCKET_COUNT,
                 );
             }
             t = totals[key];
@@ -391,20 +398,18 @@ impl aggregate(start: int, end: int, k: int) -> str {
         }
         sessions += t.sessions;
         hours += float(t.seconds) / 3600.0;
-        groups.append(
-            {
-                "version": t.version,
-                "os": t.os,
-                "gpu_vendor": t.gpu_vendor,
-                "render_distance": t.render_distance,
-                "sessions": t.sessions,
-                "install_days": t.installs,
-                "hours": round_away(float(t.seconds) / 360.0) / 10.0,
-                "frame_buckets": t.buckets,
-                "p50_ms": tenth(t.p50_sum / float(t.sessions)),
-                "p99_ms": tenth(t.p99_sum / float(t.sessions))
-            }
-        );
+        groups.append({
+            "version": t.version,
+            "os": t.os,
+            "gpu_vendor": t.gpu_vendor,
+            "render_distance": t.render_distance,
+            "sessions": t.sessions,
+            "install_days": t.installs,
+            "hours": round_away(float(t.seconds) / 360.0) / 10.0,
+            "frame_buckets": t.buckets,
+            "p50_ms": tenth(t.p50_sum / float(t.sessions)),
+            "p99_ms": tenth(t.p99_sum / float(t.sessions)),
+        });
     }
     groups.sort(key=lambda (g: dict[str, any]) -> int { -g["sessions"] });
     crashes: dict[str, int] = {};
@@ -417,20 +422,20 @@ impl aggregate(start: int, end: int, k: int) -> str {
             }
         }
     }
-    by_count = sorted(crashes.items(), key=lambda (c: tuple[str, int]) -> tuple[int, str] { (-c[1], c[0]) });
-    return dumps(
-        {
-            "from_day": start,
-            "to_day": end,
-            "min_install_days": k,
-            "bucket_edges_ms": [tenth(float(f32(e))) for e in BUCKET_EDGES_MS],
-            "totals": {"sessions": sessions, "hours": tenth(hours)},
-            "groups": groups,
-            "crashes_by_version": [{"version": v, "crashes": n} for (v, n) in by_count[:20]],
-            "breakdowns": breakdowns(start, end),
-            "slow_frames": slow_frames(start, end, k)
-        }
+    by_count = sorted(
+        crashes.items(), key=lambda (c: tuple[str, int]) -> tuple[int, str] { (-c[1], c[0]) }
     );
+    return dumps({
+        "from_day": start,
+        "to_day": end,
+        "min_install_days": k,
+        "bucket_edges_ms": [tenth(float(f32(e))) for e in BUCKET_EDGES_MS],
+        "totals": {"sessions": sessions, "hours": tenth(hours)},
+        "groups": groups,
+        "crashes_by_version": [{"version": v, "crashes": n} for (v, n) in by_count[:20]],
+        "breakdowns": breakdowns(start, end),
+        "slow_frames": slow_frames(start, end, k),
+    });
 }
 
 impl slow_frames(start: int, end: int, k: int) -> list[dict[str, any]] {
@@ -458,7 +463,7 @@ impl slow_frames(start: int, end: int, k: int) -> list[dict[str, any]] {
     kept.sort(
         key=lambda (e: tuple[tuple[str, str], StepTotals]) -> tuple[int, str, str] {
             (-e[1].frames, e[0][0], e[0][1])
-        }
+        },
     );
     return [
         {
@@ -468,7 +473,7 @@ impl slow_frames(start: int, end: int, k: int) -> list[dict[str, any]] {
             "sessions": st.sessions,
             "installs": len(st.installs),
             "frame_max_ms": tenth(st.frame_max_ms),
-            "span_max_ms": tenth(st.span_max_ms)
+            "span_max_ms": tenth(st.span_max_ms),
         }
         for (key, st) in kept
     ];
@@ -488,7 +493,7 @@ impl breakdowns(start: int, end: int) -> dict[str, any] {
             ram_gb=u16(m.ram_gb),
             gpu_kind=extra.get("gpu_kind", ""),
             vram_mb=u32(extra.get("vram_mb", 0)),
-            storage=extra.get("storage", "")
+            storage=extra.get("storage", ""),
         );
         for (n, cls) in enumerate(of_system(system)) {
             if cls is None {
@@ -509,7 +514,9 @@ impl breakdowns(start: int, end: int) -> dict[str, any] {
     for (dim, by_class) in zip(DIMENSIONS, cells) {
         listed = [(cls, c) for (cls, c) in by_class.items() if len(c.installs) >= MIN_INSTALLS];
         listed.sort(
-            key=lambda (e: tuple[str, ClassTotals]) -> tuple[int, str] { (-len(e[1].installs), e[0]) }
+            key=lambda (e: tuple[str, ClassTotals]) -> tuple[int, str] {
+                (-len(e[1].installs), e[0])
+            },
         );
         if listed {
             out[dim] = [
@@ -519,7 +526,7 @@ impl breakdowns(start: int, end: int) -> dict[str, any] {
                     "sessions": c.sessions,
                     "hours": round_away(float(c.seconds) / 360.0) / 10.0,
                     "p50_ms": tenth(c.p50_sum / float(c.sessions)),
-                    "p99_ms": tenth(c.p99_sum / float(c.sessions))
+                    "p99_ms": tenth(c.p99_sum / float(c.sessions)),
                 }
                 for (cls, c) in listed
             ];
@@ -601,11 +608,13 @@ impl export_machines(start: int, end: int) -> list[dict[str, any]] {
             "driver": m.driver,
             "backend": m.backend,
             "storage": extra.get("storage", ""),
-            "form": extra.get("form", "")
+            "form": extra.get("form", ""),
         };
         key = dumps(description);
         if key not in machines {
-            machines[key] = MachineTotals(description=description, buckets=[0] * len(frames.buckets));
+            machines[key] = MachineTotals(
+                description=description, buckets=[0] * len(frames.buckets)
+            );
         }
         e = machines[key];
         e.installs.add(s.install);
@@ -620,7 +629,7 @@ impl export_machines(start: int, end: int) -> list[dict[str, any]] {
     }
     listed = sorted(
         machines.items(),
-        key=lambda (e: tuple[str, MachineTotals]) -> tuple[int, str] { (-e[1].sessions, e[0]) }
+        key=lambda (e: tuple[str, MachineTotals]) -> tuple[int, str] { (-e[1].sessions, e[0]) },
     );
     out: list[dict[str, any]] = [];
     for (_, e) in listed {

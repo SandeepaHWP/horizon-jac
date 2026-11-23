@@ -62,9 +62,13 @@ test "old minutes and hours go and days stay" {
 test "an empty history has no peak" {
     fresh();
     h = history("players", "30d", START);
-    assert h["series"] == [] and h["peak"] is None and h["all_time"] is None and h["latest"] is None;
+    assert h["series"] == []
+        and h["peak"] is None
+        and h["all_time"] is None
+        and h["latest"] is None;
     assert h["platforms"] == {};
-    assert live_history("players", "1y", START) is None and live_history("lan", "24h", START) is None;
+    assert live_history("players", "1y", START) is None
+        and live_history("lan", "24h", START) is None;
 }
 
 test "the official series is kept apart" {
@@ -83,5 +87,6 @@ test "a history is written as the original's struct" {
     fresh();
     record_live("players", START, sample(3, 1));
     text = live_history("players", "24h", START + 30);
-    assert text == f'{{"source":"players","range":"24h","step":300,"from":{START + 30 - 86400 - (START + 30 - 86400) % 300},"to":{START + 30},"series":[[{START},3.0,3]],"peak":{{"playing":3,"at":{START}}},"all_time":{{"playing":3,"at":{START}}},"latest":{{"playing":3,"at":{START}}},"platforms":{{"linux":1.0,"macos":2.0}}}}', text;
+    assert text
+        == f'{{"source":"players","range":"24h","step":300,"from":{START + 30 - 86400 - (START + 30 - 86400) % 300},"to":{START + 30},"series":[[{START},3.0,3]],"peak":{{"playing":3,"at":{START}}},"all_time":{{"playing":3,"at":{START}}},"latest":{{"playing":3,"at":{START}}},"platforms":{{"linux":1.0,"macos":2.0}}}}', text;
 }

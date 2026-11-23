@@ -41,7 +41,7 @@ test "timings summarise as the original's do" {
             "p95_ms": float(s.p95_ms),
             "p99_ms": float(s.p99_ms),
             "max_ms": float(s.max_ms),
-            "buckets": [int(b) for b in s.buckets]
+            "buckets": [int(b) for b in s.buckets],
         };
         assert got == want, f"seed {seed}: {got} != {want}";
     }

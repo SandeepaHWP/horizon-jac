@@ -28,7 +28,9 @@ impl live_count(now: float, window: int) -> Count {
         platforms[s.platform] += 1;
         lan += 1 if s.lan else 0;
     }
-    ranked = sorted(versions.items(), key=lambda (v: tuple[str, int]) -> tuple[int, str] { (-v[1], v[0]) });
+    ranked = sorted(
+        versions.items(), key=lambda (v: tuple[str, int]) -> tuple[int, str] { (-v[1], v[0]) }
+    );
     shown: dict[str, int] = {};
     other = 0;
     for (i, (version, n)) in enumerate(ranked) {
@@ -45,6 +47,6 @@ impl live_count(now: float, window: int) -> Count {
         playing=len(sessions),
         lan=lan,
         versions=shown,
-        platforms={p: n for (p, n) in zip(PLATFORMS, platforms) if n > 0}
+        platforms={p: n for (p, n) in zip(PLATFORMS, platforms) if n > 0},
     );
 }

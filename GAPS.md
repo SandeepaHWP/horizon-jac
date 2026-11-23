@@ -241,8 +241,11 @@ response is HTTP/1.0 with the connection closed. Also:
   attributes are not class attributes to Jac.
 
 What works: `override def setup { self.protocol_version = "HTTP/1.1"; super.setup(); }`, which sets
-it on each handler instance. The same applies to `ThreadingHTTPServer.address_family` for an IPv6
-listening address.
+it on each handler instance. The same holds for `ThreadingHTTPServer.address_family`:
+`class Server6(ThreadingHTTPServer) { static has address_family: int = socket.AF_INET6; }` still
+makes an IPv4 socket, so `HOST=::1` failed with `gaierror: [Errno -9] Address family for hostname
+not supported`. What works: create the server with `bind_and_activate=False`, give it an IPv6
+`socket`, then `server_bind()` and `server_activate()`.
 
 ## G22. E1182 and E1146 contradict each other for a type a crossing returns (diagnostics)
 
@@ -475,3 +478,14 @@ Ten thousand sessions is the size of the original's own storage test; the origin
 no visible growth. A served space cannot say that a call changed nothing, or that a part of the
 graph should not be compared, so this cost can't be avoided from the program. (Part of each port
 number is the gate-to-api crossing, a local HTTP call; that part does not grow with the data.)
+
+## G34. Two type-checker limits: a dotted class is no type, and a conditional expression does not narrow (minor)
+
+- `def make_server(...) -> http.server.ThreadingHTTPServer;` is
+  `E1163: an attribute access is not a type`. The class has to be imported by name first
+  (`import from http.server { ThreadingHTTPServer }`). In Python, `http.server.ThreadingHTTPServer`
+  in an annotation is ordinary.
+- With `port: int | None`, `(host, port if port is not None else 8080)` is typed
+  `tuple[str, int | None]`, and passing it where `tuple[str, int]` is expected is E1053. The `is not
+  None` test narrows an `if` statement's block, but not the branch of a conditional expression it
+  guards.

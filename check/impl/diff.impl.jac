@@ -888,7 +888,9 @@ impl measure(batches: int, per_batch: int) {
     }
     bodies: list[bytes] = [];
     for n in range(batches) {
-        bodies.append(batch(n, [made[f"{gpus[(n + i) % 4]} {8 + (i % 3) * 4}"] for i in range(per_batch)]));
+        bodies.append(
+            batch(n, [made[f"{gpus[(n + i) % 4]} {8 + (i % 3) * 4}"] for i in range(per_batch)])
+        );
     }
     print(f"bodies made: {len(bodies)}", file=sys.stderr, flush=True);
     print(f"{batches} batches of {per_batch} sessions: {batches * per_batch} sessions");
@@ -912,7 +914,11 @@ impl measure(batches: int, per_batch: int) {
         for body in bodies {
             sent += 1;
             if sent % 100 == 0 {
-                print(f"{which}: {sent} batches, {(time.monotonic() - t0) / float(sent) * 1000.0:.1f} ms each so far", file=sys.stderr, flush=True);
+                print(
+                    f"{which}: {sent} batches, {(time.monotonic() - t0) / float(sent) * 1000.0:.1f} ms each so far",
+                    file=sys.stderr,
+                    flush=True,
+                );
             }
             g = ask(r.port, "POST", "/v1/batch", {"content-encoding": "zstd"}, body);
             if g.status != 204 {

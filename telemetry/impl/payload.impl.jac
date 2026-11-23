@@ -291,7 +291,7 @@ impl Timings.summary -> Summary {
         p95_ms=tenth32(self.percentile(0.95)),
         p99_ms=tenth32(self.percentile(0.99)),
         max_ms=tenth32(self.max_ms),
-        buckets=[u32(c) for c in counts]
+        buckets=[u32(c) for c in counts],
     );
 }
 

@@ -1,9 +1,24 @@
 graph layers {
     """The wire format the game, the launcher and the server share."""
-    layer model { telemetry.payload | telemetry.batch | telemetry.live | telemetry.server_status | telemetry.config | telemetry.buckets | telemetry.reply; }
+    layer model {
+        telemetry.payload
+            | telemetry.batch
+            | telemetry.live
+            | telemetry.server_status
+            | telemetry.config
+            | telemetry.buckets
+            | telemetry.reply;
+    }
 
     """What the server works out from what it keeps: no storage, no requests."""
-    layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report | service.checks; }
+    layer logic {
+        service.jsonv
+            | service.classes
+            | service.summary
+            | service.issues
+            | service.game_report
+            | service.checks;
+    }
 
     """What the server keeps, as a graph under the shared root."""
     layer keep { service.store | service.history | service.hub; }
@@ -41,7 +56,12 @@ graph import {
     edge Checks: model --> checks;
 
     telemetry.payload ++> telemetry.batch {
-        Batch, is_install_id, validate, batch_of, item_json, jstr
+        Batch,
+        is_install_id,
+        validate,
+        batch_of,
+        item_json,
+        jstr,
     }
     telemetry.payload ++> service.classes { System }
     service.jsonv ++> service.classes { at, as_f64, as_str }
@@ -50,8 +70,17 @@ graph import {
     service.classes ++> service.summary { DIMENSIONS, of_report }
     service.issues ++> service.game_report { Issue, Rule, clean, neutralise, text_field }
     telemetry.payload ++> service.store {
-        Summary, System, Batch, Kind, BUCKET_EDGES_MS, display_json, jstr, slow_json, data_json,
-        round_away, tenth
+        Summary,
+        System,
+        Batch,
+        Kind,
+        BUCKET_EDGES_MS,
+        display_json,
+        jstr,
+        slow_json,
+        data_json,
+        round_away,
+        tenth,
     }
     service.jsonv ++> service.store { dumps }
     service.classes ++> service.store { of_system, DIMENSIONS }
@@ -75,13 +104,29 @@ graph import {
     service.issues ++> service.api { Issue, website_issue }
     service.game_report ++> service.api { game_issue, KIND }
     service.store ++> service.api {
-        count_on, insert, delete_install, aggregate, benchmark_uploads, export_benchmarks,
-        export_machines, newest_day, expire
+        count_on,
+        insert,
+        delete_install,
+        aggregate,
+        benchmark_uploads,
+        export_benchmarks,
+        export_machines,
+        newest_day,
+        expire,
     }
     service.history ++> service.api { live_history, record_live, prune_live, sample_of, Sample }
     service.hub ++> service.api {
-        vote, votes_json, queued_on, enqueue, claim, filed, release_claim, unfiled, expire_queue,
-        requeue_filing, RETRY_DAYS
+        vote,
+        votes_json,
+        queued_on,
+        enqueue,
+        claim,
+        filed,
+        release_claim,
+        unfiled,
+        expire_queue,
+        requeue_filing,
+        RETRY_DAYS,
     }
     service.livetable ++> service.api { live_ping, live_count, live_forget }
     service.github ++> service.api { open_issue }
@@ -97,20 +142,46 @@ graph import {
     service.issues ++> gate.routes { website_fields, fields_json }
     service.game_report ++> gate.routes { game_fields }
     service.api ++> gate.routes {
-        take_batch, forget_install, totals, bench_summary, export_reports, export_hardware,
-        take_ping, live_now, history, take_vote, vote_counts, take_report
+        take_batch,
+        forget_install,
+        totals,
+        bench_summary,
+        export_reports,
+        export_hardware,
+        take_ping,
+        live_now,
+        history,
+        take_vote,
+        vote_counts,
+        take_report,
     }
     telemetry.config ++> gate.front { parse_uint }
     gate.routes ++> gate.front { Request, Answer, MAX_READ, answer_to, text, cfg, limits }
     telemetry.payload ++> check.diff {
-        Item, Perf, Crash, Source, Kind, System, Settings, SlowFrames, Timings, Batch
+        Item,
+        Perf,
+        Crash,
+        Source,
+        Kind,
+        System,
+        Settings,
+        SlowFrames,
+        Timings,
+        Batch,
     }
     telemetry.batch ++> check.diff { encode_batch }
 }
 
 graph spaces {
     """The server's data: the kept graph, the live table, the upkeep."""
-    space api: native { service.api | service.store | service.history | service.hub | service.livetable | service.github; }
+    space api: native {
+        service.api
+            | service.store
+            | service.history
+            | service.hub
+            | service.livetable
+            | service.github;
+    }
 
     """The original's HTTP interface: rate limits, checks and headers; the data is the api's."""
     space front: native { entry gate.front; gate.routes; }

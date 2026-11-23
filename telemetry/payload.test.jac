@@ -2,7 +2,9 @@ import json;
 
 """A perf item with a session of `n` frames from 8 to 13 ms."""
 def bug_item(text: str) -> Item {
-    return Item(day=u32(20741), source=Source.GAME, version="v1", kind=Kind.BUG, bug=Bug(text=text));
+    return Item(
+        day=u32(20741), source=Source.GAME, version="v1", kind=Kind.BUG, bug=Bug(text=text)
+    );
 }
 
 test "items are tagged by kind and read back" {
@@ -11,7 +13,7 @@ test "items are tagged by kind and read back" {
         source=Source.GAME,
         version="v0.4.2",
         kind=Kind.BUG,
-        bug=Bug(text="Water flickers")
+        bug=Bug(text="Water flickers"),
     );
     v: dict[str, any] = json.loads(item_json(it));
     assert v["kind"] == "bug" and v["source"] == "game";
@@ -39,7 +41,7 @@ test "oversized items are refused" {
         source=Source.GAME,
         version="v1",
         kind=Kind.CRASH,
-        crash=Crash(stack="frame\n" * 10000)
+        crash=Crash(stack="frame\n" * 10000),
     );
     why = validate(huge);
     assert why is not None and "over its" in why;
@@ -57,7 +59,8 @@ test "timings give percentiles and buckets" {
     t.record(f32(math.nan));
     s = t.summary();
     assert s.count == u64(100);
-    assert (s.p50_ms, s.p95_ms, s.p99_ms, s.max_ms) == (f32(16.7), f32(30.1), f32(30.1), f32(400.0));
+    assert (s.p50_ms, s.p95_ms, s.p99_ms, s.max_ms)
+        == (f32(16.7), f32(30.1), f32(30.1), f32(400.0));
     assert len(s.buckets) == 14;
     assert (s.buckets[6], s.buckets[9], s.buckets[13]) == (u32(90), u32(9), u32(1));
     assert sum(int(b) for b in s.buckets) == 100;
@@ -81,7 +84,7 @@ test "a session summary is small" {
         source=Source.GAME,
         version="v0.4.2",
         kind=Kind.PERF,
-        perf=Perf(frames=t.summary(), ticks=t.summary())
+        perf=Perf(frames=t.summary(), ticks=t.summary()),
     );
     assert len(item_json(it).encode()) < 1024;
     assert validate(it) is None;
@@ -92,9 +95,10 @@ test "slow frames are counted by span within a cap" {
     record_slow(spans, f32(300.0), "render.upload", f32(200.0));
     record_slow(spans, f32(900.0), "render.upload", f32(120.0));
     record_slow(spans, f32(260.0), "", f32(0.0));
-    assert spans[0] == SlowFrames(
-        span="render.upload", frames=u32(2), frame_max_ms=f32(900.0), span_max_ms=f32(200.0)
-    );
+    assert spans[0]
+        == SlowFrames(
+            span="render.upload", frames=u32(2), frame_max_ms=f32(900.0), span_max_ms=f32(200.0)
+        );
     assert (spans[1].span, spans[1].frames) == ("", u32(1));
     for i in range(40) {
         record_slow(spans, f32(400.0), f"step.{i}", f32(300.0));
@@ -104,7 +108,11 @@ test "slow frames are counted by span within a cap" {
     other = [s for s in spans if s.span == SLOW_OTHER][0];
     assert other.frames == u32(40 - 13 + 1);
     ok = Item(
-        day=u32(1), source=Source.GAME, version="v0.4.2", kind=Kind.PERF, perf=Perf(slow_frames=spans)
+        day=u32(1),
+        source=Source.GAME,
+        version="v0.4.2",
+        kind=Kind.PERF,
+        perf=Perf(slow_frames=spans),
     );
     assert validate(ok) is None;
     too_many = Item(
@@ -112,12 +120,13 @@ test "slow frames are counted by span within a cap" {
         source=Source.GAME,
         version="v0.4.2",
         kind=Kind.PERF,
-        perf=Perf(slow_frames=spans + spans)
+        perf=Perf(slow_frames=spans + spans),
     );
     assert validate(too_many) is not None;
 }
 
 test "rounding takes halves away from zero, as Rust's does" {
-    assert (round_away(2.5), round_away(-2.5), round_away(98.5), round_away(0.49999999999999994)) == (3.0, -3.0, 99.0, 0.0);
+    assert (round_away(2.5), round_away(-2.5), round_away(98.5), round_away(0.49999999999999994))
+        == (3.0, -3.0, 99.0, 0.0);
     assert tenth(3.46) == 3.5 and tenth(0.25) == 0.3;
 }

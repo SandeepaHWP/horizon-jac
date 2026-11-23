@@ -66,7 +66,11 @@ test "a server answers its player count" {
             data += conn.recv(4096);
         }
         got.append(data);
-        conn.sendall(answer('{"version":{"name":"26.3","protocol":777},"players":{"max":100,"online":12,"sample":[]}}'));
+        conn.sendall(
+            answer(
+                '{"version":{"name":"26.3","protocol":777},"players":{"max":100,"online":12,"sample":[]}}',
+            ),
+        );
         conn.close();
     }
     t = threading.Thread(target=serve);

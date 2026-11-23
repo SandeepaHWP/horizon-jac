@@ -28,15 +28,15 @@ def perf(gpu: str, distance: int) -> Item {
                 ram_gb=u16(32),
                 gpu=gpu,
                 driver="570.86",
-                backend="Vulkan"
+                backend="Vulkan",
             ),
             settings=Settings(
                 render_distance=u8(distance), simulation_distance=u8(12), graphics="fancy"
             ),
             seconds=u32(1800),
             frames=t.summary(),
-            peak_ram_mb=u32(2300)
-        )
+            peak_ram_mb=u32(2300),
+        ),
     );
 }
 
@@ -56,10 +56,19 @@ def totals(k: int) -> dict[str, any] {
 test "totals show only groups with enough installs" {
     fresh();
     for n in range(6) {
-        insert(Batch(schema=u32(1), install_id=install(n), items=[perf("NVIDIA GeForce RTX 4070", 12)] * 2), DAY);
+        insert(
+            Batch(
+                schema=u32(1),
+                install_id=install(n),
+                items=[perf("NVIDIA GeForce RTX 4070", 12)] * 2,
+            ),
+            DAY,
+        );
     }
     for n in range(10, 12) {
-        insert(Batch(schema=u32(1), install_id=install(n), items=[perf("Intel(R) Arc A770", 8)]), DAY);
+        insert(
+            Batch(schema=u32(1), install_id=install(n), items=[perf("Intel(R) Arc A770", 8)]), DAY
+        );
     }
     t = totals(5);
     groups: list[dict[str, any]] = t["groups"];
@@ -105,15 +114,35 @@ test "slow frames show what froze with enough installs" {
     def slow(span: str, frames: int, frame_max: float, span_max: float) -> Item {
         it = perf("NVIDIA GeForce RTX 4070", 12);
         it.perf.slow_frames = [
-            SlowFrames(span=span, frames=u32(frames), frame_max_ms=f32(frame_max), span_max_ms=f32(span_max))
+            SlowFrames(
+                span=span,
+                frames=u32(frames),
+                frame_max_ms=f32(frame_max),
+                span_max_ms=f32(span_max),
+            ),
         ];
         return it;
     }
     for (n, frame_max) in [(0, 900.0), (1, 400.0)] {
-        insert(Batch(schema=u32(1), install_id=install(n), items=[slow("renderer/r_uploads", 3, frame_max, 300.0)]), DAY);
+        insert(
+            Batch(
+                schema=u32(1),
+                install_id=install(n),
+                items=[slow("renderer/r_uploads", 3, frame_max, 300.0)],
+            ),
+            DAY,
+        );
     }
-    insert(Batch(schema=u32(1), install_id=install(2), items=[slow("tick/tick_mobs", 1, 260.0, 200.0)]), DAY);
-    insert(Batch(schema=u32(1), install_id=install(3), items=[perf("NVIDIA GeForce RTX 4070", 12)]), DAY);
+    insert(
+        Batch(
+            schema=u32(1), install_id=install(2), items=[slow("tick/tick_mobs", 1, 260.0, 200.0)]
+        ),
+        DAY,
+    );
+    insert(
+        Batch(schema=u32(1), install_id=install(3), items=[perf("NVIDIA GeForce RTX 4070", 12)]),
+        DAY,
+    );
     t = totals(2);
     assert t["slow_frames"] == [
         {
@@ -123,8 +152,8 @@ test "slow frames show what froze with enough installs" {
             "sessions": 2,
             "installs": 2,
             "frame_max_ms": 900.0,
-            "span_max_ms": 300.0
-        }
+            "span_max_ms": 300.0,
+        },
     ], json.dumps(t["slow_frames"]);
 }
 
@@ -138,7 +167,9 @@ test "an install's day counts its items" {
 test "deleting an install removes its rows and its share of the totals" {
     fresh();
     crash = Item(day=u32(DAY), source=Source.GAME, version="v1", kind=Kind.CRASH, crash=Crash());
-    insert(Batch(schema=u32(1), install_id=install(1), items=[perf("Apple M4 Pro", 12), crash]), DAY);
+    insert(
+        Batch(schema=u32(1), install_id=install(1), items=[perf("Apple M4 Pro", 12), crash]), DAY
+    );
     insert(Batch(schema=u32(1), install_id=install(2), items=[perf("Apple M4 Pro", 12)]), DAY);
     assert totals(1)["groups"][0]["sessions"] == 2;
     assert totals(1)["crashes_by_version"] == [{"version": "v1", "crashes": 1}];

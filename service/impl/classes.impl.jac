@@ -68,7 +68,7 @@ impl of_report(doc: any) -> list[str | None] {
         vram(vram_mb if vram_mb is not None else 0.0, kind),
         storage(as_str(at(hw, "storage")) or ""),
         os_class(as_str(at(hw, "os")) or ""),
-        gpu_kind(kind)
+        gpu_kind(kind),
     ];
 }
 
@@ -78,6 +78,6 @@ impl of_system(s: System) -> list[str | None] {
         vram(float(s.vram_mb), s.gpu_kind),
         storage(s.storage),
         os_class(s.os),
-        gpu_kind(s.gpu_kind)
+        gpu_kind(s.gpu_kind),
     ];
 }

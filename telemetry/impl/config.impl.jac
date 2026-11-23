@@ -94,7 +94,9 @@ impl config_from_env -> Config {
         official = None if o.strip() in ["", "off"] else o.strip();
     }
     export = os.environ.get("TELEMETRY_EXPORT_TOKEN");
-    export_token = export.strip() if export is not None and export.strip() != "" else secret("EXPORT_TOKEN");
+    export_token = export.strip()
+        if export is not None and export.strip() != ""
+        else secret("EXPORT_TOKEN");
     header = var("CLIENT_IP_HEADER");
     days = var("AGGREGATE_DAYS");
     trust = var("TRUST_PROXY");
@@ -105,7 +107,9 @@ impl config_from_env -> Config {
         items_per_day=uint("ITEMS_PER_DAY", d.items_per_day, u32_max),
         trust_proxy=trust is not None and trust == "1",
         client_ip_header=header_name(header) if header is not None else None,
-        allow_origin=var("ALLOW_ORIGIN") or d.allow_origin if var("ALLOW_ORIGIN") is not None else d.allow_origin,
+        allow_origin=var("ALLOW_ORIGIN") or d.allow_origin
+            if var("ALLOW_ORIGIN") is not None
+            else d.allow_origin,
         live_per_hour=real("LIVE_PER_HOUR", d.live_per_hour),
         live_window=uint("LIVE_WINDOW_SECONDS", d.live_window, 9223372036854775807),
         live_max_sessions=uint("LIVE_MAX_SESSIONS", d.live_max_sessions, 9223372036854775807),
@@ -119,32 +123,32 @@ impl config_from_env -> Config {
         hub_keep_days=uint("HUB_KEEP_DAYS", d.hub_keep_days, u32_max),
         export_token=export_token,
         github_token=secret("GITHUB_TOKEN"),
-        github_repo=var("GITHUB_REPO") or d.github_repo if var("GITHUB_REPO") is not None else d.github_repo,
+        github_repo=var("GITHUB_REPO") or d.github_repo
+            if var("GITHUB_REPO") is not None
+            else d.github_repo,
         reads_per_hour=real("READS_PER_HOUR", d.reads_per_hour),
         aggregate_builds_per_hour=real("AGGREGATE_BUILDS_PER_HOUR", d.aggregate_builds_per_hour),
         aggregate_days=parse_days(days) if days is not None else None,
-        github_api=var("GITHUB_API") or d.github_api if var("GITHUB_API") is not None else d.github_api
+        github_api=var("GITHUB_API") or d.github_api
+            if var("GITHUB_API") is not None
+            else d.github_api,
     );
 }
 
 impl Config.client_ip_refusal -> str | None {
     if self.trust_proxy and self.client_ip_header is None {
-        return (
-            "HORIZON_TELEMETRY_TRUST_PROXY=1 needs HORIZON_TELEMETRY_CLIENT_IP_HEADER, the header your "
+        return ("HORIZON_TELEMETRY_TRUST_PROXY=1 needs HORIZON_TELEMETRY_CLIENT_IP_HEADER, the header your "
             "proxy overwrites with the client's address (cf-connecting-ip behind Cloudflare, as the "
             "Dockerfile sets): without it every client would count as the proxy and share one "
-            "rate-limit bucket. Not starting."
-        );
+            "rate-limit bucket. Not starting.");
     }
     return None;
 }
 
 impl Config.client_ip_warning -> str | None {
     if not self.trust_proxy and self.client_ip_header is not None {
-        return (
-            f"HORIZON_TELEMETRY_CLIENT_IP_HEADER={self.client_ip_header} is ignored without "
-            "HORIZON_TELEMETRY_TRUST_PROXY=1: rate limits count the TCP peer"
-        );
+        return (f"HORIZON_TELEMETRY_CLIENT_IP_HEADER={self.client_ip_header} is ignored without "
+            "HORIZON_TELEMETRY_TRUST_PROXY=1: rate limits count the TCP peer");
     }
     return None;
 }

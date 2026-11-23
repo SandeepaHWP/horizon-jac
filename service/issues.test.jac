@@ -12,7 +12,9 @@ def vectors -> list[dict[str, any]] {
 }
 
 test "people's text mentions and references nothing" {
-    text = neutralise("@octocat see #12 and https://github.com/a/b/issues/3 <img src=x> `x` Fixes it");
+    text = neutralise(
+        "@octocat see #12 and https://github.com/a/b/issues/3 <img src=x> `x` Fixes it"
+    );
     assert "@o" not in text and "#1" not in text and "github.com/" not in text;
     assert "<" not in text and "`" not in text;
     assert "F​ixes" in text;
@@ -26,16 +28,14 @@ test "GH references link nothing either" {
 }
 
 test "a report reads as the template" {
-    i = website_issue(
-        {
-            "title": "Water is black\non AMD",
-            "did": "Opened a world",
-            "happened": "Black water",
-            "expected": "Blue water",
-            "system": "Windows 11, RX 6600",
-            "name": "steve_"
-        }
-    );
+    i = website_issue({
+        "title": "Water is black\non AMD",
+        "did": "Opened a world",
+        "happened": "Black water",
+        "expected": "Blue water",
+        "system": "Windows 11, RX 6600",
+        "name": "steve_",
+    });
     assert i.title == "Water is black on AMD";
     assert i.body.startswith("> **What I did:**\n> Opened a world\n> **What happened:**");
     assert "> **Horizon version:** not given\n> **OS, CPU, GPU:** Windows 11, RX 6600" in i.body;
@@ -59,12 +59,10 @@ test "links and images are not live markdown" {
 }
 
 test "the issue body has no live link and keeps bare URLs" {
-    i = website_issue(
-        {
-            "did": "![x](https://evil.example/p.png) join play.example.org:25565",
-            "title": "[t](https://evil.example)"
-        }
-    );
+    i = website_issue({
+        "did": "![x](https://evil.example/p.png) join play.example.org:25565",
+        "title": "[t](https://evil.example)",
+    });
     assert "](" not in i.body and "](" not in i.title;
     assert "play.example.org:25565" in i.body;
 }
@@ -73,7 +71,12 @@ test "the website's reports are written as the original's are" {
     for v in vectors() {
         if v["case"] == "website" {
             i = website_issue(v["fields"]);
-            assert (i.title, i.body, i.labels) == (v["title"], v["issue"], v["labels"]), f"case {v['i']}:\n{i.body}\n---\n{v['issue']}";
+            assert (i.title, i.body, i.labels)
+                == (
+                    v["title"],
+                    v["issue"],
+                    v["labels"],
+                ), f"case {v['i']}:\n{i.body}\n---\n{v['issue']}";
         } elif v["case"] == "neutralise" {
             assert neutralise(v["in"]) == v["out"], f"{neutralise(v['in'])!r} != {v['out']!r}";
         }

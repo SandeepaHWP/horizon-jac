@@ -9,8 +9,8 @@ impl open_issue(api: str, repo: str, token: str, issue: Issue) -> str {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
             "User-Agent": "horizon-telemetry-server",
-            "Content-Type": "application/json"
-        }
+            "Content-Type": "application/json",
+        },
     );
     try {
         with urllib.request.urlopen(req, timeout=20.0) as resp {

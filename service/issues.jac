@@ -33,7 +33,7 @@ glob REPORT: list[Rule] = [
     Rule("expected", True, 3, 2000, True),
     Rule("version", False, 0, 60, False),
     Rule("system", True, 3, 200, False),
-    Rule("name", False, 0, 64, False)
+    Rule("name", False, 0, 64, False),
 ];
 
 """Text people wrote, safe in an issue."""

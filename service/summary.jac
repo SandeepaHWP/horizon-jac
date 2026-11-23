@@ -13,7 +13,7 @@ glob FORMAT: str = "horizon-benchmark-summary",
          "world_ms",
          "chunk_load_ms",
          "rss_peak_mb",
-         "rss_steady_mb"
+         "rss_steady_mb",
      ];
 
 """One stored upload: who sent it (only to count installs), the release, and the report."""

@@ -41,7 +41,7 @@ impl Front.request_of -> Request | None {
         headers=headers,
         body=body,
         body_over=over,
-        peer=self.client_address[0]
+        peer=self.client_address[0],
     );
 }
 
@@ -110,6 +110,18 @@ impl Front.setup {
 
 impl Front.log_message(format: str, *args: any) {}
 
+impl make_server(address: tuple[str, int]) -> ThreadingHTTPServer {
+    if ":" not in address[0] {
+        return ThreadingHTTPServer(address, Front);
+    }
+    srv = ThreadingHTTPServer(address, Front, bind_and_activate=False);
+    srv.socket.close();
+    srv.socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM);
+    srv.server_bind();
+    srv.server_activate();
+    return srv;
+}
+
 impl sweep_limits {
     while True {
         time.sleep(600.0);
@@ -131,14 +143,18 @@ with entry {
     if days.strip() != "" and cfg.aggregate_days is None {
         print(
             "horizon-telemetry-server: HORIZON_TELEMETRY_AGGREGATE_DAYS isn't a list of days from 1 to 366: /v1/aggregate takes any value",
-            file=sys.stderr
+            file=sys.stderr,
         );
     }
     port_text = os.environ.get("PORT", "");
     port = parse_uint(port_text, 65535) if port_text != "" else None;
     host = os.environ.get("HOST", "0.0.0.0");
-    address = (host, port if port is not None else 8080);
-    srv = Server6(address, Front) if ":" in host else http.server.ThreadingHTTPServer(address, Front);
+    listen_port = 8080;
+    if port is not None {
+        listen_port = port;
+    }
+    address = (host, listen_port);
+    srv = make_server(address);
     threading.Thread(target=sweep_limits, daemon=True).start();
     print(f"horizon-telemetry-server: listening on {srv.server_port}", file=sys.stderr, flush=True);
     srv.serve_forever();

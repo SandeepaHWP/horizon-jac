@@ -1,8 +1,11 @@
 """A ping as the game sends it."""
 def ping_text(session: str, version: str, platform: str, lan: bool) -> bytes {
-    return json.dumps(
-        {"session": session, "version": version, "platform": platform, "lan": lan}
-    ).encode();
+    return json.dumps({
+        "session": session,
+        "version": version,
+        "platform": platform,
+        "lan": lan,
+    }).encode();
 }
 
 test "a ping holds only the four fields" {
@@ -31,10 +34,12 @@ test "bad pings are refused" {
     ] {
         assert ping_check(bad) is not None, str(bad);
     }
-    assert ping_check(Ping(session="0" * 32, version="dev 0.1.0", platform="other", lan=True)) is None;
+    assert ping_check(Ping(session="0" * 32, version="dev 0.1.0", platform="other", lan=True))
+        is None;
 }
 
 test "a count is written as the original's struct" {
     c = Count(playing=2, lan=1, versions={"0.2.0": 2}, platforms={"macos": 1, "linux": 1});
-    assert count_json(c) == '{"playing":2,"lan":1,"versions":{"0.2.0":2},"platforms":{"linux":1,"macos":1}}';
+    assert count_json(c)
+        == '{"playing":2,"lan":1,"versions":{"0.2.0":2},"platforms":{"linux":1,"macos":1}}';
 }

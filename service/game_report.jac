@@ -21,7 +21,7 @@ glob AREAS: list[str] = [
     "saves",
     "worldgen",
     "chunks",
-    "commands"
+    "commands",
 ];
 
 """A measurement's capture, on the website's performance viewer."""
@@ -39,7 +39,7 @@ glob TEXTS: list[Rule] = [
     Rule("version", True, 3, 80, False),
     Rule("outdated", False, 0, 80, False),
     Rule("name", False, 0, 64, False),
-    Rule("log", False, 0, 40000, True)
+    Rule("log", False, 0, 40000, True),
 ];
 
 """The request's fields checked: the cleaned object, or ValueError with what is wrong."""

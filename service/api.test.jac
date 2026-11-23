@@ -22,7 +22,9 @@ glob opened: list[dict[str, any]] = [],
 """Answers `POST /repos/<repo>/issues` as GitHub does, or 502 while it is down."""
 class FakeGitHub(http.server.BaseHTTPRequestHandler) {
     def do_POST {
-        body: dict[str, any] = json.loads(self.rfile.read(int(self.headers["Content-Length"])).decode());
+        body: dict[str, any] = json.loads(
+            self.rfile.read(int(self.headers["Content-Length"])).decode()
+        );
         github_started.set();
         hold = github_hold;
         if hold is not None {
@@ -35,7 +37,9 @@ class FakeGitHub(http.server.BaseHTTPRequestHandler) {
             return;
         }
         opened.append(body);
-        answer = json.dumps({"html_url": f"https://github.com/horizon-rust/horizon/issues/{1000 + len(opened)}"}).encode();
+        answer = json.dumps({
+            "html_url": f"https://github.com/horizon-rust/horizon/issues/{1000 + len(opened)}",
+        }).encode();
         self.send_response(201);
         self.send_header("Content-Length", str(len(answer)));
         self.end_headers();
@@ -83,17 +87,15 @@ def fresh {
 """The website form's fields, checked as the gate checks them."""
 def form(title: str) -> str {
     return fields_json(
-        website_fields(
-            {
-                "title": title,
-                "did": "Opened a new world\nWalked to the sea",
-                "happened": "The water is black",
-                "expected": "Blue water, as in vanilla",
-                "version": "v0.2.57",
-                "system": "Windows 11, Ryzen 5 5600, RX 6600",
-                "website": ""
-            }
-        )
+        website_fields({
+            "title": title,
+            "did": "Opened a new world\nWalked to the sea",
+            "happened": "The water is black",
+            "expected": "Blue water, as in vanilla",
+            "version": "v0.2.57",
+            "system": "Windows 11, Ryzen 5 5600, RX 6600",
+            "website": "",
+        }),
     );
 }
 
@@ -105,7 +107,8 @@ def body_of(r: Reply) -> dict[str, any] {
 test "a report becomes an issue in the bug template" {
     fresh();
     r = take_report("report", form("Water is black on AMD"), 30);
-    assert r.status == 201 and body_of(r)["issue"] == "https://github.com/horizon-rust/horizon/issues/1001", r.body;
+    assert r.status == 201
+        and body_of(r)["issue"] == "https://github.com/horizon-rust/horizon/issues/1001", r.body;
     issue = opened.pop(0);
     assert issue["title"] == "Water is black on AMD" and issue["labels"] == ["bug", "from-website"];
     text: str = issue["body"];
@@ -186,16 +189,14 @@ test "a report sent twice while GitHub is slow opens one issue" {
 
 test "a game report opens an issue in the game's template" {
     fresh();
-    fields = game_fields(
-        {
-            "category": "bug",
-            "title": "Water is black",
-            "happened": "The water turned black",
-            "version": "v0.4.2",
-            "system": [["GPU", "RX 6600"]],
-            "area": "rendering"
-        }
-    );
+    fields = game_fields({
+        "category": "bug",
+        "title": "Water is black",
+        "happened": "The water turned black",
+        "version": "v0.4.2",
+        "system": [["GPU", "RX 6600"]],
+        "area": "rendering",
+    });
     r = take_report(KIND, fields_json(fields), 20);
     assert r.status == 201, r.body;
     assert opened[0]["labels"] == ["from-game", "bug", "rendering"];

@@ -1,6 +1,7 @@
 """horizon-telemetry-server's front: serves the original's HTTP interface on `PORT` (default
 8080) at `HOST` (default every address), and answers each request through the api space."""
 import http.server;
+import from http.server { ThreadingHTTPServer }
 import os;
 import socket;
 import sys;
@@ -41,10 +42,9 @@ class Front(http.server.BaseHTTPRequestHandler) {
     override def log_message(format: str, *args: any);
 }
 
-"""A threading server on an IPv6 address."""
-class Server6(http.server.ThreadingHTTPServer) {
-    static has address_family: int = socket.AF_INET6;
-}
+"""A threading server listening at `address`, IPv6 when the host is (a class field cannot set
+the address family: G21)."""
+def make_server(address: tuple[str, int]) -> ThreadingHTTPServer;
 
 """Every ten minutes, the rate limits' idle buckets are forgotten."""
 def sweep_limits;

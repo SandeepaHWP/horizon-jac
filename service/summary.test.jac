@@ -18,7 +18,7 @@ test "the fixtures give the website's groups" {
         Upload(
             install=i["install_id"] if isinstance(i.get("install_id"), str) else "",
             version=i["version"] if isinstance(i.get("version"), str) else "",
-            doc=i["data"]
+            doc=i["data"],
         )
         for i in items()
     ];
@@ -39,7 +39,7 @@ test "only comparable runs count" {
         "frame rate capped",
         "not every scene",
         "not the standard flight",
-        "not a version 1 benchmark report"
+        "not a version 1 benchmark report",
     ], str(reasons);
 }
 

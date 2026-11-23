@@ -1,4 +1,5 @@
 import from service.store { Hub, forget_lookups }
+
 """Starts again on an empty graph."""
 def fresh {
     for h in [root.shared --> [?:Hub]] {
@@ -36,7 +37,8 @@ test "a report is queued once, claimed once, and expires" {
     fresh();
     (id, issue) = enqueue("report", 100, 99, '{"title":"x"}');
     assert issue is None and queued_on("report", 100) == 1;
-    assert enqueue("report", 100, 99, '{"title":"x"}') == (id, None), "the same text is the same entry";
+    assert enqueue("report", 100, 99, '{"title":"x"}')
+        == (id, None), "the same text is the same entry";
     assert claim(id) and not claim(id);
     release_claim(id);
     assert [q.id for q in unfiled(93)] == [id];

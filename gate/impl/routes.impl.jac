@@ -44,20 +44,22 @@ impl text(status: int, message: str) -> Answer {
     return Answer(
         status=status,
         headers=[("content-type", "text/plain; charset=utf-8")],
-        body=message.encode()
+        body=message.encode(),
     );
 }
 
 impl json_answer(body: str, max_age: int) -> Answer {
-    origin = cfg.allow_origin if cfg.allow_origin.isascii() and cfg.allow_origin.isprintable() else "*";
+    origin = cfg.allow_origin
+        if cfg.allow_origin.isascii() and cfg.allow_origin.isprintable()
+        else "*";
     return Answer(
         status=200,
         headers=[
             ("content-type", "application/json"),
             ("cache-control", f"public, max-age={max_age}"),
-            ("access-control-allow-origin", origin)
+            ("access-control-allow-origin", origin),
         ],
-        body=body.encode()
+        body=body.encode(),
     );
 }
 
@@ -78,7 +80,7 @@ impl preflight -> Answer {
     a.headers = [(k, v) for (k, v) in a.headers if k != "content-type"] + [
         ("access-control-allow-methods", "POST"),
         ("access-control-allow-headers", "content-type"),
-        ("access-control-max-age", "86400")
+        ("access-control-max-age", "86400"),
     ];
     return a;
 }
@@ -171,11 +173,15 @@ impl export_answer(r: Request, body: str) -> Answer {
     headers = [
         ("content-type", "application/json"),
         ("cache-control", "no-store"),
-        ("vary", "Accept-Encoding")
+        ("vary", "Accept-Encoding"),
     ];
     raw = body.encode();
     if gz {
-        return Answer(status=200, headers=[("content-encoding", "gzip")] + headers, body=gzip.compress(raw, mtime=0));
+        return Answer(
+            status=200,
+            headers=[("content-encoding", "gzip")] + headers,
+            body=gzip.compress(raw, mtime=0),
+        );
     }
     return Answer(status=200, headers=headers, body=raw);
 }
@@ -229,12 +235,15 @@ impl answer_to(r: Request) -> Answer {
         "/hub/votes": ["GET", "HEAD"],
         "/hub/report": ["POST", "OPTIONS"],
         "/v1/report": ["POST"],
-        "/healthz": ["GET", "HEAD"]
+        "/healthz": ["GET", "HEAD"],
     };
     path = urllib.parse.unquote(r.path);
     method = "GET" if r.method == "HEAD" else r.method;
     install_id: str | None = None;
-    if path.startswith("/v1/installs/") and "/" not in path[len("/v1/installs/"):] and len(path) > len("/v1/installs/") {
+    if path.startswith("/v1/installs/")
+        and "/" not in path[len("/v1/installs/"):]
+        and len(path) > len("/v1/installs/")
+    {
         install_id = path[len("/v1/installs/"):];
         if r.method != "DELETE" {
             return Answer(status=405, headers=[("allow", "DELETE")]);

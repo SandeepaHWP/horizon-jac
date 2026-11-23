@@ -27,10 +27,28 @@ impl rows(series: str, table: str) -> list[Row] {
     for (t, v) in rows_of(series, table).items() {
         if isinstance(v, Minute) {
             m: Minute = v;
-            out.append(Row(t=t, samples=1, total=m.playing, peak=m.playing, peak_at=t, platform_sums=m.platforms));
+            out.append(
+                Row(
+                    t=t,
+                    samples=1,
+                    total=m.playing,
+                    peak=m.playing,
+                    peak_at=t,
+                    platform_sums=m.platforms,
+                ),
+            );
         } else {
             r: Roll = v;
-            out.append(Row(t=t, samples=r.samples, total=r.total, peak=r.peak, peak_at=r.peak_at, platform_sums=r.platform_sums));
+            out.append(
+                Row(
+                    t=t,
+                    samples=r.samples,
+                    total=r.total,
+                    peak=r.peak,
+                    peak_at=r.peak_at,
+                    platform_sums=r.platform_sums,
+                ),
+            );
         }
     }
     return out;
@@ -45,7 +63,10 @@ impl record_live(series: str, unix: int, sample: Sample) -> bool {
     m = Minute(t=minute, playing=sample.playing, lan=sample.lan, platforms=list(sample.platforms));
     hub(f"{series}.minute") ++> m;
     minutes[minute] = m;
-    for (table, start) in [("hour", minute - minute % HOUR), ("day", minute - minute % DAY_SECONDS)] {
+    for (table, start) in [
+        ("hour", minute - minute % HOUR),
+        ("day", minute - minute % DAY_SECONDS),
+    ] {
         held = rows_of(series, table);
         if start not in held {
             fresh_roll = Roll(t=start, peak=sample.playing, peak_at=minute, lan_peak=sample.lan);
@@ -90,7 +111,7 @@ impl live_history(series: str, range_name: str, now: int) -> str | None {
         "24h": ("minute", 300, DAY_SECONDS),
         "7d": ("hour", HOUR, 7 * DAY_SECONDS),
         "30d": ("hour", 3 * HOUR, 30 * DAY_SECONDS),
-        "all": ("day", DAY_SECONDS, 0)
+        "all": ("day", DAY_SECONDS, 0),
     };
     if range_name not in plans or series not in ["players", "official"] {
         return None;
@@ -140,12 +161,10 @@ impl live_history(series: str, range_name: str, now: int) -> str | None {
     }
     points_json = ",".join(
         f"[{b},{dumps(tenth(float(v[0]) / float(v[1])))},{max(v[2], 0)}]"
-        for (b, v) in sorted(points.items())
+        for (b, v) in sorted(points.items()),
     );
-    return (
-        f'{{"source":"{series}","range":"{range_name}","step":{step},"from":{start},"to":{now},'
+    return (f'{{"source":"{series}","range":"{range_name}","step":{step},"from":{start},"to":{now},'
         f'"series":[{points_json}],"peak":{peak_json(best(window))},'
         f'"all_time":{peak_json(best(rows(series, "day")))},"latest":{peak_json(latest)},'
-        f'"platforms":{dumps(platforms)}}}'
-    );
+        f'"platforms":{dumps(platforms)}}}');
 }

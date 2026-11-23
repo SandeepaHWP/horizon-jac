@@ -67,8 +67,12 @@ impl read_varint(data: bytes, pos: int) -> tuple[int, int] {
 impl status_request(host: str, port: int) -> bytes {
     name = host.encode();
     handshake = (
-        write_varint(0) + write_varint(PROTOCOL) + write_varint(len(name)) + name
-        + port.to_bytes(2, "big") + write_varint(1)
+        write_varint(0)
+        + write_varint(PROTOCOL)
+        + write_varint(len(name))
+        + name
+        + port.to_bytes(2, "big")
+        + write_varint(1)
     );
     return write_varint(len(handshake)) + handshake + bytes([1, 0]);
 }
@@ -101,7 +105,12 @@ impl parse_players(text: str) -> Players {
     }
     p: any = value["players"];
     def field(k: str) -> int | None {
-        if isinstance(p, dict) and k in p and isinstance(p[k], int) and not isinstance(p[k], bool) and p[k] >= 0 {
+        if isinstance(p, dict)
+            and k in p
+            and isinstance(p[k], int)
+            and not isinstance(p[k], bool)
+            and p[k] >= 0
+        {
             return p[k];
         }
         return None;

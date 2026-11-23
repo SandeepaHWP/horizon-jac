@@ -31,7 +31,7 @@ impl game_fields(body: any) -> dict[str, any] {
     bug = category == "bug";
     per_category = [
         Rule("happened", bug, 10 if bug else 0, 500, False),
-        Rule("measurement", not bug, 0 if bug else 10, 6000, True)
+        Rule("measurement", not bug, 0 if bug else 10, 6000, True),
     ];
     for rule in TEXTS + per_category {
         value = text_field(o, rule);
@@ -161,11 +161,9 @@ impl game_issue(fields: dict[str, any]) -> Issue {
         name = name.replace(ch, "");
     }
     signed = f" by **{name}**" if name != "" else "";
-    footer = (
-        f"Reported from the game{signed}\n\n<sub>Opened by Horizon's Report Bugs screen. The player "
+    footer = (f"Reported from the game{signed}\n\n<sub>Opened by Horizon's Report Bugs screen. The player "
         "saw this text before sending it; they have this issue's link and don't get GitHub "
-        "notifications.</sub>"
-    );
+        "notifications.</sub>");
     head = "\n\n".join(parts);
     log = get("log");
     body = "";
@@ -174,10 +172,8 @@ impl game_issue(fields: dict[str, any]) -> Issue {
     } else {
         room = max(MAX_ISSUE_CHARS - (len(head) + len(footer) + 200), 0);
         cut = max(len(log) - room, 0);
-        body = (
-            f"{head}\n\n<details><summary>The end of the log</summary>\n\n{code(log[cut:])}"
-            f"\n\n</details>\n\n{footer}"
-        );
+        body = (f"{head}\n\n<details><summary>The end of the log</summary>\n\n{code(log[cut:])}"
+            f"\n\n</details>\n\n{footer}");
     }
     labels = [LABEL];
     if bug {
