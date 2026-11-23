@@ -115,7 +115,22 @@ original's binary is built with `neojac cargo build --release` in its crate.
 
 ## Cost
 
-COST_TABLE
+Measured by `check/diff.jac --measure` on one machine, both servers sent the same sessions over
+HTTP (G33):
+
+| | 1,000 sessions: original | port | 10,000 sessions: original | port |
+|---|---|---|---|---|
+| `POST /v1/batch`, mean | 0.8 ms | 23.1 ms | 1.4 ms | 391.9 ms |
+| `GET /v1/aggregate`, built | 3 ms | 53 ms | 20 ms | 1,215 ms |
+| `GET /v1/aggregate`, cached | 0.4 ms | 28.7 ms | 0.3 ms | 782.3 ms |
+| Bytes kept per session | 2,236 | 5,340 | 597 | 1,804 |
+| Resident memory, KiB | 7,556 | 65,668 | 9,744 | 119,624 |
+| Start to first answer | 59 ms | 113 ms | 53 ms | 107 ms |
+
+The port answers correctly but is far slower, and every call slows as the kept graph grows, a cached
+read included: the store compares the whole graph in memory on each call's write (G33). At the
+original's own test size of 10,000 sessions, each batch takes 0.4 s. The binaries are 22 MB each
+against the original's 7 MB; a build of all three apps takes 66 s and 1.9 GB of memory.
 
 ## Differences
 

@@ -13,8 +13,8 @@ Any guess at a cause is marked as a guess. I never read neojac's source.
 
 | | Gap | Kind |
 |---|---|---|
-| **Blockers** | G24 a served space segfaults writing a `None` `bytes`/`list` field · G26 a `glob` in an impl annex is never initialized, and segfaults · G27 a kept `None` string can't be read back after a restart · G3 a served space can't express an ordinary HTTP API | bugs, limitation |
-| **Major** | G23 crossings refuse `None` for `str \| None` and `list \| None` · G2, G8, G9, G10 absorb and port give nothing usable for Rust · G28 no index on the kept graph · G32 cost against the original | bugs, limitations, measurements |
+| **Blockers** | G24 a served space segfaults writing a `None` `bytes`/`list` field · G32 a segfault in the cycle collector · G26 a `glob` in an impl annex is never initialized, and segfaults · G27 a kept `None` string can't be read back after a restart · G3 a served space can't express an ordinary HTTP API | bugs, limitation |
+| **Major** | G23 crossings refuse `None` for `str \| None` and `list \| None` · G2, G8, G9, G10 absorb and port give nothing usable for Rust · G28 no index on the kept graph · G33 every call slows as the graph grows | bugs, limitations, measurements |
 | **Bugs** | G6 absorb rewrites manifests · G11 `decode` overflow escapes · G20 wire-use judged by entry point · G21 `static has` doesn't override a library class's attribute · G22 E1182 vs E1146 · G25 thread targets lose defaults | |
 | **Limitations and friction** | G7, G12, G13, G15, G17, G18, G19, G29, G30, G31 | |
 | **Docs** | G1 no Rust porting skill · G4 `class` "not built" is stale · G5 examples fail the default lint · G14 kept field types undocumented · G16 test-annex imports undocumented | |
@@ -453,3 +453,25 @@ cycles, did not crash, so the trigger is narrower than "zstd in a loop". It repr
 check program at commit `16562db` of this repository: `BATCHES=1000 dist/diff-linux-x86_64 --measure`.
 Building each distinct session once (800 times less garbage) avoids it. The api compresses every
 crash and bug report it keeps with the same function, so a busy server could meet this.
+
+## G33. Every call to a served space slows as its graph grows, cache hits included (major)
+
+`check/diff.jac --measure` sends the same sessions to the original and to the port, then reads the
+totals twice (the second read is a cache hit: the api returns a string it already holds).
+
+| | 1,000 sessions: original | port | 10,000 sessions: original | port |
+|---|---|---|---|---|
+| `POST /v1/batch`, mean | 0.8 ms | 23.1 ms | 1.4 ms | 391.9 ms |
+| `GET /v1/aggregate`, built | 3 ms | 53 ms | 20 ms | 1,215 ms |
+| `GET /v1/aggregate`, cached | 0.4 ms | 28.7 ms | 0.3 ms | 782.3 ms |
+| Bytes kept per session | 2,236 | 5,340 | 597 | 1,804 |
+| Resident memory, KiB (the port: both processes) | 7,556 | 65,668 | 9,744 | 119,624 |
+
+The cached read does no graph work, yet costs 27 times more at 10 times the data. `apps/data` says
+each write "compares what is in memory with what was read ... so its cost grows with what the app
+has reached", and a server writes when each call returns. Once a call has reached all sessions
+(building the totals does), every later call pays for comparing all of them, a read-only one too.
+Ten thousand sessions is the size of the original's own storage test; the original handles it with
+no visible growth. A served space cannot say that a call changed nothing, or that a part of the
+graph should not be compared, so this cost can't be avoided from the program. (Part of each port
+number is the gate-to-api crossing, a local HTTP call; that part does not grow with the data.)
