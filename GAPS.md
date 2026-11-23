@@ -161,3 +161,11 @@ and `dict[int, int]`. Presumably the store uses the crossing codec (guess), but 
 E2093 on line 1, plus E2089 ("an import does not belong here") and E0003 on a valid
 `graph import { ... }` block further down. The parser does not recover after the bad name, and
 the later errors point away from the one real mistake.
+
+## G16. A test annex may import project modules without a wire; undocumented (docs)
+
+`telemetry/batch.test.jac` writes `import from telemetry.payload { Item, Timings, ... }`, an import
+of another module of the project. In a module that is E1144 ("an import of a project module written
+in a module"). In the test annex, `neojac check` and `neojac test` accept it. That is convenient,
+but `language/tests`, `toolchain/projects` and `language/modules-wiring` do not say test annexes
+are exempt from the archwire.

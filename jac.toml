@@ -1,0 +1,12 @@
+[project]
+name = "horizon-telemetry"
+exclude = ["reference/*", "tools/*.py"]
+
+[check.lint]
+ignore = ["strip-comments", "strip-docstrings"]
+
+[test]
+directories = ["."]
+
+[apps.gate.remote]
+api = "http://127.0.0.1:8090"
