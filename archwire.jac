@@ -6,7 +6,7 @@ graph layers {
     layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report; }
 
     """What the server keeps, as a graph under the shared root."""
-    layer keep { service.store; }
+    layer keep { service.store | service.history | service.hub; }
 }
 
 graph import {
@@ -32,4 +32,10 @@ graph import {
     service.jsonv ++> service.store { dumps }
     service.classes ++> service.store { of_system, DIMENSIONS }
     service.summary ++> service.store { Upload, MIN_INSTALLS }
+    telemetry.live ++> service.history { Count, PLATFORMS }
+    telemetry.payload ++> service.history { tenth }
+    service.jsonv ++> service.history { dumps }
+    service.store ++> service.history | service.hub { hub }
+    service.store ++> service.hub { counters }
+    service.jsonv ++> service.hub { dumps }
 }

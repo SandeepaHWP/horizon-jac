@@ -191,3 +191,17 @@ original uses everywhere it publishes a number) gives `3` and `-3`. `neojac docs
 zero"` finds nothing, and `math` has no `round_half_away`. The port has its own `round_away`. A
 port from Rust, C (`round()`), JavaScript (`Math.round`, which rounds halves up) or Go meets this
 at every rounded number.
+
+## G20. Whether a wire is "used" depends on which module the command started from (bug)
+
+`archwire.jac` wired `service.store ++> service.history | service.hub { hub, forget_lookups, Hub }`.
+`service.history` uses `forget_lookups` and `Hub` only in its test annex.
+
+- `neojac check service/history.jac` and `neojac test service/history.jac`: clean, 5 passed.
+- `neojac check service/hub.jac`: `error[E1146]: 'forget_lookups' is wired into 'service.history',
+  which never uses it` (and the same for `Hub`), with no change to any file.
+
+`language/modules-wiring` says every command judges the archwire whole, the same whichever program
+it runs on ("an `archwire.jac` that one command takes, every command takes"). Here a use in a test
+annex counts when that module is the one checked and not when another is. The port moved such names
+to an `import` in the test annex (which G16 allows).
