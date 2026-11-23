@@ -361,3 +361,41 @@ was `None` becomes unreadable once the server restarts, and every call that touc
 (`apps/data`'s "Data that no longer fits" advice, `--fresh`, discards the data). Guess: the store
 reads with the codec of G23. Found by the side-by-side check's restart scenario. Workaround:
 `Session.slow_frames` is `str = ""`, empty meaning none.
+
+## G28. The kept graph has no index: a lookup by field loads a whole collection (major for scale)
+
+The original finds an install, a machine or a day by key with SQL indexes. The graph offers
+`jobj(id)` by node id, and edge references: `[hub --> [?:Install]]` reads every install, and
+`apps/data` says a node's edges "come when they are first read ... all of them at once, with the
+node at the other end of each". Nothing in `apps/data`, `language/graph-queries` or the store
+plugin's contract (`neojac docs apps/plugins`) offers an index or a keyed lookup. The port keeps
+its own `dict[str, Node]` lookups in globals, built from each collection's hub on first use, and
+keeps them in step by hand on every insert and removal. That is a second copy of the store's job
+in program code, which the principles page says should not be needed.
+
+## G29. A scheduled function stops the server reading requests while it runs (limitation)
+
+`apps/server`: "While a scheduled function runs, the calls already being answered go on, and no
+new request is read." The original's upkeep and its minute recorder run off the request path
+(`spawn_blocking`). The recorder's status ping can wait 5 s per step, and filing a report waits up
+to 20 s on GitHub. As `@schedule` functions they would stop all intake for that long. The port
+starts a `threading.Thread` from each scheduled function for the network waits and calls `commit()`
+there. The expiry and rebuild (graph work) still run on the loop thread, so intake pauses while
+they run.
+
+## G30. Reserved words collide with ordinary names at almost every turn (friction)
+
+Names the Rust original uses, or that a port reaches for, that Jac reserves (E0013), each met
+while writing this port: `report` (a test's helper, a local), `edge` (an app name, a loop
+variable), `entry`, `case`, `by` (three times), `own`, `skip`, `here`, `type`. Two of them
+(`edge` as an app name, `own` as a local) also threw the parser off for the lines after
+(G15). Each is documented, but in a port from Rust, Python or TypeScript they come one by one at
+first use. A list like `neojac docs keyword`'s, with a suggested replacement for each common
+collision, would have saved most of them.
+
+## G31. `dict(os.environ)` is typed `dict[any, any]` (minor)
+
+`full = dict(os.environ); subprocess.Popen(args, env=full)` gives
+`E1053: Popen.__init__()'s parameter 'env' expects dict[str, str], found dict[any, any]`.
+`os.environ` is a mapping of `str` to `str`; its copy loses that. Annotating
+(`full: dict[str, str] = dict(os.environ)`) works.
