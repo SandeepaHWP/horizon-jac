@@ -16,7 +16,7 @@ Any guess at a cause is marked as a guess. I never read neojac's source.
 | **Blockers** | G24 a served space segfaults writing a `None` `bytes`/`list` field · G32 a segfault in the cycle collector · G26 a `glob` in an impl annex is never initialized, and segfaults · G27 a kept `None` string can't be read back after a restart · G3 a served space can't express an ordinary HTTP API | bugs, limitation |
 | **Major** | G23 crossings refuse `None` for `str \| None` and `list \| None` · G2, G8, G9, G10 absorb and port give nothing usable for Rust · G28 no index on the kept graph · G33 every call slows as the graph grows | bugs, limitations, measurements |
 | **Bugs** | G6 absorb rewrites manifests · G11 `decode` overflow escapes · G20 wire-use judged by entry point · G21 `static has` doesn't override a library class's attribute · G22 E1182 vs E1146 · G25 thread targets lose defaults | |
-| **Limitations and friction** | G7, G12, G13, G15, G17, G18, G19, G29, G30, G31 | |
+| **Limitations and friction** | G7, G12, G13, G15, G17, G18, G19, G29, G30, G31, G34 | |
 | **Docs** | G1 no Rust porting skill · G4 `class` "not built" is stale · G5 examples fail the default lint · G14 kept field types undocumented · G16 test-annex imports undocumented | |
 
 Every blocker and major bug was found by running the program, not by `neojac check`, which

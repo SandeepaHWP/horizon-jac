@@ -151,7 +151,7 @@ What the port does differently from the original. Everything else the check comp
    can be tested against a stand-in, as the original's tests inject a filer.
 7. **Work-arounds for neojac bugs**, each in GAPS.md: batches cross from the gate to the api as JSON
    text (G23); "none" is `""` or `b""` in kept nodes and crossing results, never `None` (G23, G24,
-   G27); HTTP/1.1 is set per handler (G21).
+   G27); HTTP/1.1 is set per handler and an IPv6 socket per server (G21); the measured sessions are built once, which avoids a collector crash (G32).
 
 Not compared against the original: the upkeep's timing, and the official server's status ping on
 the real network. The api-level tests cover both against stand-ins.
