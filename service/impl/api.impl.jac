@@ -22,7 +22,8 @@ impl forget_cached {
     caches.summary = None;
 }
 
-impl take_batch(b: Batch) -> int {
+impl take_batch(batch: str) -> int {
+    b = batch_of(json.loads(batch));
     with data_lock {
         ready();
         day = today();
@@ -50,14 +51,14 @@ impl forget_install(key: str) -> int {
     return deleted;
 }
 
-impl totals(days: int) -> str | None {
+impl totals(days: int) -> str {
     now = time.monotonic();
     hit = caches.totals.get(days);
     if hit is not None and now - hit[0] < CACHE_FOR {
         return hit[1];
     }
     if not builds.take(cfg.aggregate_builds_per_hour, "all") {
-        return None;
+        return "";
     }
     text = "";
     with data_lock {
@@ -132,7 +133,7 @@ impl live_now -> str {
     return text;
 }
 
-impl history(series: str, range_name: str) -> str | None {
+impl history(series: str, range_name: str) -> str {
     key = f"{series} {range_name}";
     hit = caches.history.get(key);
     if hit is not None and time.monotonic() - hit[0] < HISTORY_FOR {
@@ -142,9 +143,10 @@ impl history(series: str, range_name: str) -> str | None {
     with data_lock {
         text = live_history(series, range_name, unix_now());
     }
-    if text is not None {
-        caches.history[key] = (time.monotonic(), text);
+    if text is None {
+        return "";
     }
+    caches.history[key] = (time.monotonic(), text);
     return text;
 }
 

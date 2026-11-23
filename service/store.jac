@@ -6,6 +6,7 @@ own, kept once however many sessions ran on it. A day keeps its totals after its
 expire. Days are the day the server received an item (days since 1970, UTC). The sender's address is
 never kept."""
 import json;
+import sys;
 import struct;
 import time;
 import compression.zstd;
@@ -63,7 +64,8 @@ node Machine {
         uses: int = 0;
 }
 
-"""One play session, in fields. `frames` and `ticks` are summaries packed in 80 bytes."""
+"""One play session, in fields. `frames` and `ticks` are summaries packed in 80 bytes; `ticks` is
+empty when the session had none (not `bytes | None`: the store crashes writing a None there)."""
 node Session {
     has install: str,
         day: int,
@@ -77,7 +79,7 @@ node Session {
         graphics: str,
         seconds: int,
         frames: bytes,
-        ticks: bytes | None = None,
+        ticks: bytes = b"",
         peak_ram_mb: int = 0,
         to_title_ms: int | None = None,
         to_world_ms: int | None = None,

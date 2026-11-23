@@ -3,7 +3,7 @@ graph layers {
     layer model { telemetry.payload | telemetry.batch | telemetry.live | telemetry.server_status | telemetry.config | telemetry.buckets | telemetry.reply; }
 
     """What the server works out from what it keeps: no storage, no requests."""
-    layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report; }
+    layer logic { service.jsonv | service.classes | service.summary | service.issues | service.game_report | service.checks; }
 
     """What the server keeps, as a graph under the shared root."""
     layer keep { service.store | service.history | service.hub; }
@@ -13,6 +13,12 @@ graph layers {
 
     """What the gate asks of the server's data."""
     layer surface { service.api; }
+
+    """The original's HTTP interface, in front of the api."""
+    layer front { gate.routes | gate.front; }
+
+    """The check that holds the port to the original, request for request."""
+    layer checks { check.diff; }
 }
 
 graph import {
@@ -27,6 +33,12 @@ graph import {
 
     """The api's surface works through everything below it."""
     edge Serves: model | logic | keep | runtime --> surface;
+
+    """The gate reads requests with the shared logic and calls the api's surface."""
+    edge Fronts: model | logic | surface --> front;
+
+    """The check makes its requests with the wire format."""
+    edge Checks: model --> checks;
 
     telemetry.payload ++> telemetry.batch {
         Batch, is_install_id, validate, batch_of, item_json, jstr
@@ -52,7 +64,7 @@ graph import {
     service.jsonv ++> service.hub { dumps }
     telemetry.live ++> service.livetable { Ping, Count, PLATFORMS }
     service.issues ++> service.github { Issue }
-    telemetry.payload ++> service.api { Batch, BUCKET_EDGES_MS, tenth }
+    telemetry.payload ++> service.api { batch_of, BUCKET_EDGES_MS, tenth }
     telemetry.config ++> service.api { Config, config_from_env }
     telemetry.buckets ++> service.api { Buckets }
     telemetry.reply ++> service.api { Reply }
@@ -73,12 +85,45 @@ graph import {
     }
     service.livetable ++> service.api { live_ping, live_count, live_forget }
     service.github ++> service.api { open_issue }
+    telemetry.payload ++> gate.routes { Batch }
+    telemetry.batch ++> gate.routes { decode_batch, batch_json, MAX_COMPRESSED }
+    telemetry.config ++> gate.routes { Config, config_from_env, parse_uint }
+    telemetry.buckets ++> gate.routes { Buckets }
+    telemetry.reply ++> gate.routes { Reply }
+    telemetry.live ++> gate.routes { Ping, ping_of, ping_check, MAX_PING_BYTES }
+    telemetry.payload ++> gate.routes { is_install_id }
+    service.jsonv ++> gate.routes { dumps }
+    service.checks ++> gate.routes { item_id, voter_id }
+    service.issues ++> gate.routes { website_fields, fields_json }
+    service.game_report ++> gate.routes { game_fields }
+    service.api ++> gate.routes {
+        take_batch, forget_install, totals, bench_summary, export_reports, export_hardware,
+        take_ping, live_now, history, take_vote, vote_counts, take_report
+    }
+    telemetry.config ++> gate.front { parse_uint }
+    gate.routes ++> gate.front { Request, Answer, MAX_READ, answer_to, text, cfg, limits }
+    telemetry.payload ++> check.diff {
+        Item, Perf, Crash, Source, Kind, System, Settings, SlowFrames, Timings, Batch
+    }
+    telemetry.batch ++> check.diff { encode_batch }
 }
 
 graph spaces {
     """The server's data: the kept graph, the live table, the upkeep."""
     space api: native { service.api | service.store | service.history | service.hub | service.livetable | service.github; }
 
+    """The original's HTTP interface: rate limits, checks and headers; the data is the api's."""
+    space front: native { entry gate.front; gate.routes; }
+
     """Serves the api space to the gate."""
     app api { run api; }
+
+    """The side-by-side check against the original."""
+    space checking: native { entry check.diff; }
+
+    """horizon-telemetry-server, as the world reaches it."""
+    app gate { run front; }
+
+    """Runs the original and the port side by side and compares them."""
+    app diff { run checking; }
 }

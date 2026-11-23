@@ -205,3 +205,96 @@ at every rounded number.
 it runs on ("an `archwire.jac` that one command takes, every command takes"). Here a use in a test
 annex counts when that module is the one checked and not when another is. The port moved such names
 to an `import` in the test annex (which G16 allows).
+
+## G21. A `static has` on a subclass of a library class does not override the base's attribute (bug)
+
+CPython's `http.server` is configured by class attributes: `protocol_version = "HTTP/1.1"` on the
+handler class turns on keep-alive. `neojac docs library/http` lists `protocol_version` among the
+handler's names, "As CPython's".
+
+```jac
+class H(http.server.BaseHTTPRequestHandler) {
+    static has protocol_version: str = "HTTP/1.1";
+    def do_GET { print(self.protocol_version, H.protocol_version); ... }
+}
+```
+
+prints `HTTP/1.0 HTTP/1.1`: the base class's code (and `self.`) still sees `HTTP/1.0`, so every
+response is HTTP/1.0 with the connection closed. Also:
+
+- `H.protocol_version = "HTTP/1.1";` in code is `E1030: Front has no static field 'protocol_version'`.
+- Reading `http.server.BaseHTTPRequestHandler.protocol_version` is
+  `E1030: BaseHTTPRequestHandler has no static field 'protocol_version'`: the native module's class
+  attributes are not class attributes to Jac.
+
+What works: `override def setup { self.protocol_version = "HTTP/1.1"; super.setup(); }`, which sets
+it on each handler instance. The same applies to `ThreadingHTTPServer.address_family` for an IPv6
+listening address.
+
+## G22. E1182 and E1146 contradict each other for a type a crossing returns (diagnostics)
+
+`gate.routes` calls `reply = take_report(...)`, an api-space function returning `Reply`.
+
+- `neojac check gate` (the module compiled): `error[E1182]: 'Reply', which take_report()'s
+  signature names, is not wired into 'gate.routes': wire it in with
+  'telemetry.reply ++> gate.routes { Reply }'`.
+- With that wire added, `neojac check diff` (another app, which only reads `gate.routes`):
+  `error[E1146]: 'Reply' is wired into 'gate.routes', which never uses it`.
+
+Following E1182's fix alone leaves the project failing under another command. The building-an-app
+skill's table says to annotate too (`s: Summary = f()`); E1182's message does not. With
+`reply: Reply = take_report(...)` both pass.
+
+## G23. `decode` (so every crossing) refuses `None` for `str | None` and `list[T] | None` (bug, major)
+
+`stdjac` docs: `decode[Tweet | None](None)` gives `None`; `apps/crossings`: "`null` is `None` for a
+parameter whose type admits `None`". Measured:
+
+| Call | Result |
+|---|---|
+| `decode[Tweet \| None](None)`, `decode[int \| None](None)` | `None` (as documented) |
+| `decode[str \| None](None)` | `CodecError: expected a str, got None` |
+| `decode[OnlyInt]({"n": None})`, `n: int \| None`; `decode[OnlyObj]({"t": None})`, `t: Tweet \| None` | decoded |
+| `decode[Inner]({"text": "hi", "log": None})`, `log: str \| None` | `CodecError: .log: expected a str, got None` |
+| `decode[OnlyList]({"xs": None})`, `xs: list[int] \| None` | `CodecError: .xs: expected a list, got None` |
+
+And `encode(Inner(text="hi"))` writes `"log": null`, so `decode(encode(x))` fails for any object
+with an unset `str | None` or `list | None` field. Every crossing does exactly that: the port's
+`take_batch(b: Batch)` failed for any batch holding a bug report without a log
+(`.b.items[0].bug.log: expected a str, got None`), and the gate answered 503. Found by the
+side-by-side check, not by the type checker, which accepted the signature.
+
+The same holds for a *result*: `def totals(days: int) -> str | None` returning `None` reaches the
+caller as `RemoteDecodeError` (the gate then reported the api as down). Workarounds in the port: the
+batch crosses as its JSON text (`take_batch(batch: str)`), decoded on the api side by the port's own
+serde-faithful reader; `totals` and `history` return `""` for "none".
+
+## G24. A served space segfaults writing a node whose `bytes | None` or `list | None` field is `None` (bug, blocker)
+
+Minimal reproduction: a project with one native space `api` holding `svc.jac`, app `api { run api; }`:
+
+```jac
+node WithBytes {
+    has x: bytes | None = None;
+}
+
+def:pub bytes_none -> str {
+    root.shared ++> WithBytes();
+    return "ok";
+}
+```
+
+`curl -X POST http://127.0.0.1:8411/__jac/call/api/svc/bytes_none`: no reply, and the server dies
+with `Segmentation fault (core dumped)`, exit status 139, printing nothing. Results per field type,
+each in a fresh data directory:
+
+| Field left as `None` | Result |
+|---|---|
+| `int \| None`, `str \| None` | `{"ok": true, ...}`, kept |
+| `bytes \| None` set to `b"\x01"` | kept |
+| `bytes \| None` | segfault |
+| `list[int] \| None` | segfault |
+
+The same code under `neojac test` (no kept graph) passes, so the store's write is the guess. In the
+port, a perf session without tick summaries (`Perf.ticks` absent, the common case) killed the api
+on every batch. Workaround: `Session.ticks` is `bytes = b""`, empty meaning none.

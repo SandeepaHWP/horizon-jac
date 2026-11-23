@@ -53,16 +53,17 @@ def ready;
 """Drops the cached public answers, after a deletion or an expiry."""
 def forget_cached;
 
-"""Checks the daily cap and keeps one decoded batch: 204, 429 over the cap, 503 when it could not
-be kept."""
-def take_batch(b: Batch) -> int;
+"""Checks the daily cap and keeps one checked batch, sent as its JSON text: 204, 429 over the cap,
+503 when it could not be kept. (Text, not a `Batch`: a crossing refuses an unset `str | None`
+field, which a bug report without its log has.)"""
+def take_batch(batch: str) -> int;
 
 """Deletes everything an install sent: how many rows went."""
 def forget_install(key: str) -> int;
 
-"""The totals of the last `days` days, made again at most every ten minutes; None when making
-them would pass the hour's build budget."""
-def totals(days: int) -> str | None;
+"""The totals of the last `days` days, made again at most every ten minutes; `""` when making them
+would pass the hour's build budget. (Not `str | None`: a crossing refuses a None `str | None`.)"""
+def totals(days: int) -> str;
 
 """Players' benchmark groups, made again at most every ten minutes."""
 def bench_summary -> str;
@@ -80,8 +81,8 @@ def take_ping(p: Ping) -> bool;
 def live_now -> str;
 
 """The live count, or the official server's, over a range, made again at most every minute;
-None for an unknown range or series."""
-def history(series: str, range_name: str) -> str | None;
+`""` for an unknown range or series."""
+def history(series: str, range_name: str) -> str;
 
 """A vote, or one taken back: the item's count, or None when the item would be one too many."""
 def take_vote(item: str, voter: str, up: bool) -> int | None;

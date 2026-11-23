@@ -2,6 +2,9 @@ impl decode_batch(body: bytes) -> Batch {
     if len(body) > MAX_COMPRESSED {
         raise ValueError(f"over {MAX_COMPRESSED} bytes");
     }
+    if len(body) >= 4 and body[:4] != b"\x28\xb5\x2f\xfd" {
+        raise ValueError(f"BadMagicNumber({int.from_bytes(body[:4], 'little')})");
+    }
     text = b"";
     try {
         text = compression.zstd.ZstdDecompressor().decompress(body, max_length=MAX_JSON + 1);

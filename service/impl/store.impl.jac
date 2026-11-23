@@ -195,7 +195,7 @@ impl insert(b: Batch, day: int) {
                 graphics=p.settings.graphics,
                 seconds=int(p.seconds),
                 frames=pack(p.frames),
-                ticks=pack(p.ticks) if p.ticks is not None else None,
+                ticks=pack(p.ticks) if p.ticks is not None else b"",
                 peak_ram_mb=int(p.peak_ram_mb),
                 to_title_ms=int(p.to_title_ms) if p.to_title_ms is not None else None,
                 to_world_ms=int(p.to_world_ms) if p.to_world_ms is not None else None,

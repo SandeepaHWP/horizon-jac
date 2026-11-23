@@ -27,12 +27,6 @@ node Queued {
         body: str;
 }
 
-"""A roadmap item id's shape: lowercase words joined by dashes, at most 48 characters."""
-def item_id(id: str) -> bool;
-
-"""A voter id's shape: what `crypto.randomUUID()` and the like make."""
-def voter_id(id: str) -> bool;
-
 """Adds or takes back a vote; the item's count after it. None when the item would be one too many."""
 def vote(item: str, voter: str, up: bool) -> int | None;
 
